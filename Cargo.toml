@@ -1,0 +1,3 @@
+[workspace]
+members = ["kiss", "core", "async-core"]
+resolver = "2"

@@ -1,0 +1,8 @@
+[package]
+name = "sc2-async-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sc2-core = { version = "0.1.0", path = "../core" }
+tokio-tungstenite = "0.21"
