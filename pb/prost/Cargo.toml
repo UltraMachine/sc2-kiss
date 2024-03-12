@@ -1,0 +1,11 @@
+[package]
+name = "sc2-prost"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+prost = "0.12"
+
+[build-dependencies]
+prost-build = "0.12"
