@@ -12,5 +12,5 @@ thiserror = "1"
 
 [dev-dependencies]
 # For doc tests
-url = "2.5"
-http = "1.1"
+url = "2"
+http = "1"

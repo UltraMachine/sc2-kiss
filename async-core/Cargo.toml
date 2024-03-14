@@ -7,3 +7,12 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 sc2-core = { version = "0.1.0", path = "../core" }
 tokio-tungstenite = "0.21"
+tokio = { version = "1", features = ["net"] }
+futures-util = "0.3"
+
+[dev-dependencies]
+# For doc tests
+sc2-prost = { version = "0.1.0", path = "../pb/prost" }
+tokio = { version = "1", features = ["net", "rt"] }
+url = "2"
+http = "1"

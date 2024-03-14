@@ -1,4 +1,5 @@
 use super::*;
+use prost::Message;
 
 /// Enum to identify kind of request/response
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -68,94 +69,152 @@ impl KindOf for Req {
 		match_kind!(self)
 	}
 }
+impl KindOf for ResVar {
+	fn kind(&self) -> Kind {
+		use ResVar::*;
+		match_kind!(self)
+	}
+}
+impl KindOf for Res {
+	fn kind(&self) -> Kind {
+		self.data.kind()
+	}
+}
 impl KindOf for sc2_prost::Request {
 	fn kind(&self) -> Kind {
-		use Req::*;
-		self.request
-			.as_ref()
-			.map_or(Kind::None, |req| match_kind!(req))
+		self.request.as_ref().map_or(Kind::None, KindOf::kind)
 	}
 }
 impl KindOf for sc2_prost::Response {
 	fn kind(&self) -> Kind {
-		use ResVar::*;
-		self.response
-			.as_ref()
-			.map_or(Kind::None, |res| match_kind!(res))
+		self.response.as_ref().map_or(Kind::None, KindOf::kind)
 	}
 }
 
-pub(crate) fn check_status(res: Kind, now: Status, before: Status) -> Result {
-	use Status::*;
-	let expect = match res {
-		Kind::CreateGame => vec![InitGame],
-		Kind::JoinGame => vec![InGame],
-		Kind::RestartGame => vec![InGame],
-		Kind::StartReplay => vec![InReplay],
-		Kind::LeaveGame => vec![Launched],
-		Kind::Quit => vec![Unset],
-		Kind::Step => vec![InGame, Ended],
-		Kind::Debug => return Ok(()),
-		_ => vec![before],
-	};
-	if expect.contains(&now) {
-		Ok(())
-	} else {
-		Err(Error::BadStatus(now, expect))
-	}
-}
-
-/// Response returned for all requests
+/// Response type returned for all requests
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Res<R = ResVar> {
 	pub data: R,
 	pub status: Status,
 	pub warns: Vec<String>,
 }
-
-pub(crate) fn check_errors(res: sc2_prost::Response, status: Status) -> Result<Res> {
-	let Some(data) = res.response else {
-		return Err(Error::Sc2 {
-			kind: Kind::None,
-			err: "Empty Response".to_owned(),
-			desc: res.error.join("\n"),
-		});
-	};
-	let warns = res.error;
-
-	macro_rules! match_errors {
-		($($Var:ident $mod:ident $($ed:expr)?),+ $(,)?) => {
-			match data {
-				$($Var(res) => {
-					let err = res.error();
-					if err == sc2_prost::$mod::Error::Unset {
-						Ok(Res {
-							data: $Var(res),
-							status,
-							warns,
-						})
-					} else {
-						Err(Error::Sc2 {
-							kind: Kind::$Var,
-							err: format!("{err:?}"),
-							desc: match_errors!(@res $($ed)?),
-						})
-					}
-				})+
-				_ => Ok(Res { data, status, warns }),
-			}
+impl TryFrom<sc2_prost::Response> for Res {
+	type Error = Sc2Error;
+	fn try_from(res: sc2_prost::Response) -> Result<Res, Sc2Error> {
+		let status = res.status();
+		let Some(data) = res.response else {
+			return Err(Sc2Error {
+				kind: Kind::None,
+				err: "Empty Response".to_owned(),
+				desc: res.error.join("\n"),
+			});
 		};
-		(@$res:ident) => { $res.error_details };
-		(@$res:ident $ed:expr) => { $ed };
+		Ok(Res {
+			data,
+			status,
+			warns: res.error,
+		})
 	}
-	use ResVar::*;
-	match_errors! {
-		CreateGame response_create_game,
-		JoinGame response_join_game,
-		RestartGame response_restart_game,
-		StartReplay response_start_replay,
-		ReplayInfo response_replay_info,
-		SaveMap response_save_map String::new(),
-		MapCommand response_map_command,
+}
+/// Describes some error returned in the response
+#[derive(Debug, Error)]
+#[error("`{kind:?}` Error: `{err}`\n{desc}")]
+pub struct Sc2Error {
+	kind: Kind,
+	err: String,
+	desc: String,
+}
+
+#[doc(hidden)]
+pub mod internal {
+	use super::*;
+
+	pub fn check_res(res: Res, req_kind: Kind, old_status: &mut Status) -> Result<Res> {
+		let kind = res.kind();
+		if kind != req_kind {
+			return Err(Error::BadRes(kind, req_kind));
+		}
+		check_status(kind, res.status, old_status)?;
+		check_errors(res)
+	}
+
+	fn check_status(kind: Kind, now: Status, before: &mut Status) -> Result {
+		use Status::*;
+		let expect = match kind {
+			Kind::CreateGame => vec![InitGame],
+			Kind::JoinGame => vec![InGame],
+			Kind::RestartGame => vec![InGame],
+			Kind::StartReplay => vec![InReplay],
+			Kind::LeaveGame => vec![Launched],
+			Kind::Quit => vec![Unset],
+			Kind::Step => vec![InGame, Ended],
+			Kind::Debug => return Ok(()),
+			_ => vec![*before],
+		};
+		if expect.contains(&now) {
+			*before = now;
+			Ok(())
+		} else {
+			Err(Error::BadStatus(now, expect))
+		}
+	}
+
+	fn check_errors(
+		Res {
+			data,
+			status,
+			warns,
+		}: Res,
+	) -> Result<Res> {
+		macro_rules! match_errors {
+			($($Var:ident $mod:ident $($ed:expr)?),+ $(,)?) => {
+				match data {
+					$(ResVar::$Var(var) => {
+						let err = var.error();
+						if err == sc2_prost::$mod::Error::Unset {
+							Ok(Res {
+								data: ResVar::$Var(var),
+								status,
+								warns,
+							})
+						} else {
+							Err(Sc2Error {
+								kind: Kind::$Var,
+								err: format!("{err:?}"),
+								desc: match_errors!(@var $($ed)?),
+							}
+							.into())
+						}
+					})+
+					_ => Ok(Res {
+						data,
+						status,
+						warns,
+					}),
+				}
+			};
+			(@$res:ident) => { $res.error_details };
+			(@$res:ident $ed:expr) => { $ed };
+		}
+		match_errors! {
+			CreateGame response_create_game,
+			JoinGame response_join_game,
+			RestartGame response_restart_game,
+			StartReplay response_start_replay,
+			ReplayInfo response_replay_info,
+			SaveMap response_save_map String::new(),
+			MapCommand response_map_command,
+		}
+	}
+
+	pub fn req_into_msg(req: Req) -> tungstenite::Message {
+		let req = sc2_prost::Request {
+			id: 0,
+			request: Some(req),
+		};
+		tungstenite::Message::Binary(req.encode_to_vec())
+	}
+	pub fn res_from_msg(msg: tungstenite::Message) -> Result<Res> {
+		Ok(sc2_prost::Response::decode(msg.into_data().as_slice())?.try_into()?)
 	}
 }

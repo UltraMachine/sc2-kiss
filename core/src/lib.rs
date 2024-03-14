@@ -13,15 +13,15 @@ Start by looking into [`Client`] documentation.
 - [ ] Proxy between client and sc2
 */
 
-use prost::Message;
 use thiserror::Error;
-use tungstenite::{client::IntoClientRequest as ToAddr, stream::MaybeTlsStream};
+use tungstenite::stream::MaybeTlsStream;
 
 pub mod common;
 
-use common::*;
+use common::{internal::*, *};
 
 pub use sc2_prost::{request::Request as Req, response::Response as ResVar, Status};
+pub use tungstenite::client::IntoClientRequest as ToUrl;
 
 /// Possible [`Client`] errors
 #[derive(Debug, Error)]
@@ -39,12 +39,8 @@ pub enum Error {
 	#[error("Bad Status: `{0:?}`, expected any of {1:?}")]
 	BadStatus(Status, Vec<Status>),
 	/// Response contains some errors
-	#[error("`{kind:?}` Error: `{err}`\n{desc}")]
-	Sc2 {
-		kind: Kind,
-		err: String,
-		desc: String,
-	},
+	#[error("{0}")]
+	Sc2(#[from] Sc2Error),
 }
 
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;
@@ -102,7 +98,7 @@ impl Client {
 	# Ok::<(), sc2_core::Error>(())
 	```
 	*/
-	pub fn connect(to: impl ToAddr) -> Result<Self> {
+	pub fn connect(to: impl ToUrl) -> Result<Self> {
 		let (ws, _) = tungstenite::connect(to)?;
 		Ok(Self {
 			ws,
@@ -161,29 +157,9 @@ impl Client {
 	*/
 	pub fn send(&mut self, req: Req) -> Result<Res> {
 		let req_kind = req.kind();
-		let req = sc2_prost::Request {
-			id: 0,
-			request: Some(req),
-		};
-		let msg = tungstenite::Message::Binary(req.encode_to_vec());
-		self.ws.send(msg)?;
-		let msg = self.ws.read()?;
-		let res = sc2_prost::Response::decode(msg.into_data().as_slice())?;
-
-		let kind = res.kind();
-		if kind != req_kind {
-			if kind == Kind::None {
-				let status = res.status();
-				check_errors(res, status)?;
-			}
-			return Err(Error::BadRes(kind, req_kind));
-		}
-
-		let status = res.status();
-		check_status(kind, status, self.status)?;
-		self.status = status;
-
-		check_errors(res, status)
+		self.ws.send(req_into_msg(req))?;
+		let res = res_from_msg(self.ws.read()?)?;
+		check_res(res, req_kind, &mut self.status)
 	}
 
 	/**
