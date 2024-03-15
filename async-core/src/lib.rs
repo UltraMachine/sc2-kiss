@@ -80,10 +80,11 @@ impl Client {
 	```
 	*/
 	pub async fn connect(to: impl ToUrl + Unpin) -> Result<Self> {
-		let (ws, _) = tokio_tungstenite::connect_async(to).await?;
+		let (mut ws, _) = tokio_tungstenite::connect_async(to).await?;
+		let res = send_no_check(&mut ws, Req::Ping(Default::default())).await?;
 		Ok(Self {
 			ws,
-			status: Status::Launched,
+			status: res.status,
 		})
 	}
 
@@ -157,13 +158,7 @@ impl Client {
 	*/
 	pub async fn send(&mut self, req: Req) -> Result<Res> {
 		let req_kind = req.kind();
-		self.ws.send(req_into_msg(req)).await?;
-
-		let Some(msg) = self.ws.next().await else {
-			return Err(Error::WebSocket(WsError::AlreadyClosed));
-		};
-		let res = res_from_msg(msg?)?;
-
+		let res = send_no_check(&mut self.ws, req).await?;
 		check_res(res, req_kind, &mut self.status)
 	}
 
@@ -190,4 +185,13 @@ impl Client {
 	pub fn status(&self) -> Status {
 		self.status
 	}
+}
+
+async fn send_no_check(ws: &mut WebSocket, req: Req) -> Result<Res> {
+	ws.send(req_into_msg(req)).await?;
+
+	let Some(msg) = ws.next().await else {
+		return Err(Error::WebSocket(WsError::AlreadyClosed));
+	};
+	res_from_msg(msg?)
 }
