@@ -99,11 +99,10 @@ impl Client {
 	```
 	*/
 	pub fn connect(to: impl ToUrl) -> Result<Self> {
-		let (mut ws, _) = tungstenite::connect(to)?;
-		let res = send_no_check(&mut ws, Req::Ping(Default::default()))?;
+		let (ws, _) = tungstenite::connect(to)?;
 		Ok(Self {
 			ws,
-			status: res.status,
+			status: Status::Unset,
 		})
 	}
 
@@ -168,7 +167,8 @@ impl Client {
 	*/
 	pub fn send(&mut self, req: Req) -> Result<Res> {
 		let req_kind = req.kind();
-		let res = send_no_check(&mut self.ws, req)?;
+		self.ws.send(req_into_msg(req))?;
+		let res = res_from_msg(self.ws.read()?, req_kind)?;
 		check_res(res, req_kind, &mut self.status)
 	}
 
@@ -180,11 +180,12 @@ impl Client {
 	# let mut client = sc2_core::Client::connect("ws://localhost:5000/sc2api")?;
 	use sc2_core::{Req, Status};
 
-	assert_eq!(client.status(), Status::Launched);
+	assert_eq!(client.status(), Status::Unset);
 
 	let res = client.send(Req::Ping(Default::default()))?;
 	println!("Server Status: {:?}", res.status);
 
+	assert_eq!(client.status(), Status::Launched);
 	assert_eq!(client.status(), res.status);
 	# Ok::<(), sc2_core::Error>(())
 	```
@@ -192,9 +193,4 @@ impl Client {
 	pub fn status(&self) -> Status {
 		self.status
 	}
-}
-
-fn send_no_check(ws: &mut WebSocket, req: Req) -> Result<Res> {
-	ws.send(req_into_msg(req))?;
-	res_from_msg(ws.read()?)
 }

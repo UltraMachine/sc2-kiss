@@ -80,11 +80,10 @@ impl Client {
 	```
 	*/
 	pub async fn connect(to: impl ToUrl + Unpin) -> Result<Self> {
-		let (mut ws, _) = tokio_tungstenite::connect_async(to).await?;
-		let res = send_no_check(&mut ws, Req::Ping(Default::default())).await?;
+		let (ws, _) = tokio_tungstenite::connect_async(to).await?;
 		Ok(Self {
 			ws,
-			status: res.status,
+			status: Status::Unset,
 		})
 	}
 
@@ -158,7 +157,13 @@ impl Client {
 	*/
 	pub async fn send(&mut self, req: Req) -> Result<Res> {
 		let req_kind = req.kind();
-		let res = send_no_check(&mut self.ws, req).await?;
+		self.ws.send(req_into_msg(req)).await?;
+
+		let Some(msg) = self.ws.next().await else {
+			return Err(Error::WebSocket(WsError::AlreadyClosed));
+		};
+		let res = res_from_msg(msg?, req_kind)?;
+
 		check_res(res, req_kind, &mut self.status)
 	}
 
@@ -172,11 +177,12 @@ impl Client {
 	# let mut client = sc2_async_core::Client::connect("ws://localhost:5000/sc2api").await?;
 	use sc2_async_core::{Req, Status};
 
-	assert_eq!(client.status(), Status::Launched);
+	assert_eq!(client.status(), Status::Unset);
 
 	let res = client.send(Req::Ping(Default::default())).await?;
 	println!("Server Status: {:?}", res.status);
 
+	assert_eq!(client.status(), Status::Launched);
 	assert_eq!(client.status(), res.status);
 	# Ok::<(), sc2_async_core::Error>(())
 	# }).unwrap()
@@ -185,13 +191,4 @@ impl Client {
 	pub fn status(&self) -> Status {
 		self.status
 	}
-}
-
-async fn send_no_check(ws: &mut WebSocket, req: Req) -> Result<Res> {
-	ws.send(req_into_msg(req)).await?;
-
-	let Some(msg) = ws.next().await else {
-		return Err(Error::WebSocket(WsError::AlreadyClosed));
-	};
-	res_from_msg(msg?)
 }

@@ -118,7 +118,7 @@ impl TryFrom<sc2_prost::Response> for Res {
 }
 /// Describes some error returned in the response
 #[derive(Debug, Error)]
-#[error("`{kind:?}` Error: `{err}`\n{desc}")]
+#[error("Sc2 {kind:?} Error: `{err}`\n{desc}")]
 pub struct Sc2Error {
 	kind: Kind,
 	err: String,
@@ -141,14 +141,18 @@ pub mod internal {
 
 	fn check_status(kind: Kind, now: Status, before: &mut Status) -> Result {
 		use Status::*;
+		if *before == Unset {
+			*before = now;
+			return Ok(());
+		}
 		let expect = match kind {
 			Kind::CreateGame => vec![InitGame],
 			Kind::JoinGame => vec![InGame],
 			Kind::RestartGame => vec![InGame],
 			Kind::StartReplay => vec![InReplay],
 			Kind::LeaveGame => vec![Launched],
-			Kind::Quit => vec![Unset],
-			Kind::Step => vec![InGame, Ended],
+			Kind::Quit => vec![Quit],
+			Kind::Step | Kind::Observation => vec![InGame, InReplay, Ended],
 			Kind::Debug => return Ok(()),
 			_ => vec![*before],
 		};
@@ -200,7 +204,13 @@ pub mod internal {
 		};
 		tungstenite::Message::Binary(req.encode_to_vec())
 	}
-	pub fn res_from_msg(msg: tungstenite::Message) -> Result<Res> {
-		Ok(sc2_prost::Response::decode(msg.into_data().as_slice())?.try_into()?)
+	pub fn res_from_msg(msg: tungstenite::Message, req_kind: Kind) -> Result<Res> {
+		let res = sc2_prost::Response::decode(msg.into_data().as_slice())?;
+		Res::try_from(res).map_err(|mut e| {
+			if e.kind == Kind::None {
+				e.kind = req_kind;
+			}
+			e.into()
+		})
 	}
 }
