@@ -134,8 +134,9 @@ pub mod internal {
 		if kind != req_kind {
 			return Err(Error::BadRes(kind, req_kind));
 		}
+		check_errors(&res)?;
 		check_status(kind, res.status, old_status)?;
-		check_errors(res)
+		Ok(res)
 	}
 
 	fn check_status(kind: Kind, now: Status, before: &mut Status) -> Result {
@@ -159,26 +160,14 @@ pub mod internal {
 		}
 	}
 
-	fn check_errors(
-		Res {
-			data,
-			status,
-			warns,
-		}: Res,
-	) -> Result<Res> {
+	fn check_errors(res: &Res) -> Result {
 		macro_rules! match_errors {
 			($($Var:ident $mod:ident $($ed:expr)?),+ $(,)?) => {
-				match data {
-					$(ResVar::$Var(var) => {
+				match res.data {
+					$(ResVar::$Var(ref var) => {
 						let err = var.error();
-						if err == sc2_prost::$mod::Error::Unset {
-							Ok(Res {
-								data: ResVar::$Var(var),
-								status,
-								warns,
-							})
-						} else {
-							Err(Sc2Error {
+						if err != sc2_prost::$mod::Error::Unset {
+							return Err(Sc2Error {
 								kind: Kind::$Var,
 								err: format!("{err:?}"),
 								desc: match_errors!(@var $($ed)?),
@@ -186,14 +175,10 @@ pub mod internal {
 							.into())
 						}
 					})+
-					_ => Ok(Res {
-						data,
-						status,
-						warns,
-					}),
+					_ => {}
 				}
 			};
-			(@$res:ident) => { $res.error_details };
+			(@$res:ident) => { $res.error_details.clone() };
 			(@$res:ident $ed:expr) => { $ed };
 		}
 		match_errors! {
@@ -205,6 +190,7 @@ pub mod internal {
 			SaveMap response_save_map String::new(),
 			MapCommand response_map_command,
 		}
+		Ok(())
 	}
 
 	pub fn req_into_msg(req: Req) -> tungstenite::Message {
