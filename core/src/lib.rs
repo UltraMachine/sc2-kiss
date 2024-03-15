@@ -134,10 +134,20 @@ impl Client {
 	```
 	```
 	# let mut client = sc2_core::Client::connect("ws://localhost:5000/sc2api")?;
-	use sc2_core::Req;
+	use sc2_core::{Req, ResVar};
 
-	let res = client.send(Req::LeaveGame(Default::default()))?;
+	let res = client.send(Req::AvailableMaps(Default::default()))?;
 	println!("Server Status: {:?}", res.status);
+	let ResVar::AvailableMaps(data) = res.data else { unreachable!() };
+
+	println!("Local maps:");
+	for map in data.local_map_paths {
+		println!("- {map}");
+	}
+	println!("BattleNet maps:");
+	for map in data.battlenet_map_names {
+		println!("- {map}");
+	}
 	# Ok::<(), sc2_core::Error>(())
 	```
 	```

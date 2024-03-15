@@ -120,10 +120,20 @@ impl Client {
 	# tokio::runtime::Builder::new_current_thread().enable_all().build()
 	# .unwrap().block_on(async {
 	# let mut client = sc2_async_core::Client::connect("ws://localhost:5000/sc2api").await?;
-	use sc2_async_core::Req;
+	use sc2_async_core::{Req, ResVar};
 
-	let res = client.send(Req::LeaveGame(Default::default())).await?;
+	let res = client.send(Req::AvailableMaps(Default::default())).await?;
 	println!("Server Status: {:?}", res.status);
+	let ResVar::AvailableMaps(data) = res.data else { unreachable!() };
+
+	println!("Local maps:");
+	for map in data.local_map_paths {
+		println!("- {map}");
+	}
+	println!("BattleNet maps:");
+	for map in data.battlenet_map_names {
+		println!("- {map}");
+	}
 	# Ok::<(), sc2_async_core::Error>(())
 	# }).unwrap()
 	```
@@ -155,5 +165,29 @@ impl Client {
 		let res = res_from_msg(msg?)?;
 
 		check_res(res, req_kind, &mut self.status)
+	}
+
+	/**
+	Returns current server [`Status`].
+
+	# Examples
+	```
+	# tokio::runtime::Builder::new_current_thread().enable_all().build()
+	# .unwrap().block_on(async {
+	# let mut client = sc2_async_core::Client::connect("ws://localhost:5000/sc2api").await?;
+	use sc2_async_core::{Req, Status};
+
+	assert_eq!(client.status(), Status::Launched);
+
+	let res = client.send(Req::Ping(Default::default())).await?;
+	println!("Server Status: {:?}", res.status);
+
+	assert_eq!(client.status(), res.status);
+	# Ok::<(), sc2_async_core::Error>(())
+	# }).unwrap()
+	```
+	*/
+	pub fn status(&self) -> Status {
+		self.status
 	}
 }
