@@ -9,8 +9,14 @@ tungstenite = "0.21"
 sc2-prost = { version = "0.1.0", path = "../pb/prost" }
 prost = "0.12"
 thiserror = "1"
+camino = { version = "1", optional = true }
+bitflags = { version = "2", optional = true }
 
 [dev-dependencies]
 # For doc tests
 url = "2"
 http = "1"
+
+[features]
+default = ["request-methods"]
+request-methods = ["camino", "bitflags"]

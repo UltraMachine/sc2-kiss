@@ -9,6 +9,7 @@ Start by looking into [`Client`] documentation.
 ## Todo
 - [x] Client connecting and request sending
 - [x] Check response kind/status/errors
+- [ ] Optional methods for easier request making
 - [ ] SC2 Instance launching
 - [ ] Proxy between client and sc2
 */
@@ -17,6 +18,8 @@ use thiserror::Error;
 use tungstenite::stream::MaybeTlsStream;
 
 pub mod common;
+#[cfg(feature = "request-methods")]
+pub mod request;
 
 use common::{internal::*, *};
 
@@ -74,7 +77,6 @@ impl Client {
 	This function can error in case of invalid URL or connection failure.
 
 	# Examples
-
 	```
 	use sc2_core::Client;
 
@@ -150,7 +152,7 @@ impl Client {
 	}
 	# Ok::<(), sc2_core::Error>(())
 	```
-	```
+	```no_run
 	# let mut client = sc2_core::Client::connect("ws://localhost:5000/sc2api")?;
 	use sc2_core::{Req, ResVar};
 

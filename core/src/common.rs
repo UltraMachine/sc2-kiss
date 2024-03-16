@@ -125,6 +125,16 @@ pub struct Sc2Error {
 	desc: String,
 }
 
+impl<R> Res<R> {
+	pub fn map<T>(self, data: impl FnOnce(R) -> T) -> Res<T> {
+		Res {
+			data: data(self.data),
+			status: self.status,
+			warns: self.warns,
+		}
+	}
+}
+
 #[doc(hidden)]
 pub mod internal {
 	use super::*;
