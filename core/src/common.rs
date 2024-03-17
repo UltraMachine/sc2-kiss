@@ -223,4 +223,23 @@ pub mod internal {
 			e.into()
 		})
 	}
+
+	pub fn empty_res(res: Res) -> Res<()> {
+		res.map(|_| ())
+	}
+
+	#[doc(hidden)]
+	#[macro_export]
+	macro_rules! unwrap_data {
+		($res:expr; $Var:ident $($field:ident)?) => {
+			$res.map(|res| {
+				res.map(|data| {
+					let ResVar::$Var(data) = data else {
+						unreachable!()
+					};
+					data $(.$field)?
+				})
+			})
+		};
+	}
 }
