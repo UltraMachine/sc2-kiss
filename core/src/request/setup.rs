@@ -184,7 +184,7 @@ impl Client {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameCfg {
 	/// Map for the game. Can be specified as a path or data bytes.
-	pub map: common::Load,
+	pub map: Load,
 	/// Game participants.
 	pub participants: Vec<create_game::Participant>,
 	/// If set to `true`, fog of war will be disabled for all players
@@ -267,7 +267,7 @@ pub struct JoinCfg {
 	/// or as an observer with the specified Id.
 	pub join_as: join_game::JoinAs,
 	/// Interface config
-	pub interface: common::Interface,
+	pub interface: Interface,
 	pub server_ports: Option<join_game::Ports>,
 	pub client_ports: Vec<join_game::Ports>,
 	pub name: String,
@@ -339,10 +339,10 @@ pub mod join_game {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct ReplayCfg {
-	pub replay: common::Load,
+	pub replay: Load,
 	pub map_data: Vec<u8>,
 	pub player: u32,
-	pub interface: common::Interface,
+	pub interface: Interface,
 	pub disable_fog: bool,
 	pub realtime: bool,
 	pub record: bool,

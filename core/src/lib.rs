@@ -15,7 +15,6 @@ Start by looking into [`Client`] documentation.
 */
 
 use thiserror::Error;
-use tungstenite::stream::MaybeTlsStream;
 
 pub mod client;
 pub mod common;
@@ -50,5 +49,3 @@ pub enum Error {
 }
 
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;
-
-type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;

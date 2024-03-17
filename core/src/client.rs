@@ -1,4 +1,7 @@
 use super::*;
+use tungstenite::stream::MaybeTlsStream;
+
+type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 
 /**
 Client interface to connect and communicate with SC2 instance.
