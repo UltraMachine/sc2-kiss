@@ -6,10 +6,10 @@ Provides basic functionality to connect and communicate with SC2 instances.
 
 Start by looking into [`Client`] documentation.
 
-## Todo
+## Todo:
 - [x] Client connecting and request sending
 - [x] Check response kind/status/errors
-- [ ] Optional methods for easier request making
+- [x] Optional methods for easier request making
 - [ ] SC2 Instance launching
 - [ ] Proxy between client and sc2
 */

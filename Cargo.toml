@@ -1,3 +1,4 @@
 [workspace]
 members = ["kiss", "core", "async-core", "pb/prost"]
+default-members = ["kiss"]
 resolver = "2"

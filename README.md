@@ -2,7 +2,7 @@
 
 Stupidly simple Rust framework for Starcraft 2 AI bots
 
-**WIP: Not yet ready for use. Just a preview**
+**WIP: Not ready for use yet. Just a preview**
 
 ## Goals
 
