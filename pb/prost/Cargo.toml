@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 prost = "0.12"
+serde = { version = "1", features = ["derive"], optional = true }
 
 [build-dependencies]
 prost-build = "0.12"
