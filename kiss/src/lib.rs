@@ -8,9 +8,12 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 </b></div>
 
 ## Todo:
-- [ ] Id generation
+- [x] Id generation
 - [ ] Resource harvesting
 - [ ] Unit ordering
 - [ ] Structure placement
 - [ ] Micro control
 */
+
+#[cfg(feature = "ids")]
+pub mod ids;
