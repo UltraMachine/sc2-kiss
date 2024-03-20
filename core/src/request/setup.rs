@@ -356,7 +356,7 @@ impl From<ReplayCfg> for Req {
 				Load::Data(data) => ReplayData(data),
 			}),
 			map_data: cfg.map_data,
-			observed_player_id: cfg.player as i32,
+			observed_player_id: cfg.player,
 			options: Some(cfg.interface.into()),
 			disable_fog: cfg.disable_fog,
 			realtime: cfg.realtime,
