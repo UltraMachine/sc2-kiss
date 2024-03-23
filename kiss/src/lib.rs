@@ -9,8 +9,17 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 
 ## Todo:
 - [x] Id generation
+- [ ] Parse ladder args:
+	- `--LadderServer <IpAddr>`
+	- `--GamePort <u16>`
+	- `--StartPort <u16>` 
+	- `--OpponentId <str>`
+- [ ] Filter units and extract data
+- [ ] Work with positions, vectors, distances
+- [ ] Easy unit actions
+- [ ] Batch and filter actions
 - [ ] Resource harvesting
-- [ ] Unit ordering
+- [ ] Unit training
 - [ ] Structure placement
 - [ ] Micro control
 */
