@@ -2,7 +2,8 @@
 
 Stupidly simple Rust framework for Starcraft 2 AI bots
 
-**WIP: Not ready for use yet. Just a preview**
+> [!WARNING]
+> **WIP: Not ready for use yet. Just a preview**
 
 ## Goals
 
@@ -10,6 +11,14 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 - Solutions for common problems
 	(resorce management, building placement, unit pathing, unit micro control, ...)
 - Quickly modifiable and replacable things
+
+## Get help
+
+Read the docs: `cargo doc --open`
+
+Join Starcraft 2 AI Discord: https://discord.gg/Emm5Ztz
+
+DM me in discord: @armageddon1337
 
 ## Contribution
 
