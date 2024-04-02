@@ -6,8 +6,21 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 sc2-core = { version = "0.1.0", path = "../core" }
+sc2-prost = { version = "0.1.0", path = "../pb/prost" }
 num_enum = { version = "0.7", optional = true }
+glam = { version = "0.27", optional = true }
+ordered-float = { version = "4.2", optional = true }
+[dependencies.derive_more]
+version = "0.99"
+features = ["display", "from", "into"]
+default-features = false
+optional = true
+
+[dev-dependencies]
 
 [features]
-default = ["ids"]
+default = ["ids", "unit", "act", "linalg"]
 ids = ["dep:num_enum"]
+unit = ["dep:derive_more"]
+act = ["dep:derive_more"]
+linalg = ["dep:glam", "sc2-prost/glam", "dep:ordered-float"]

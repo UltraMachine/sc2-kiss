@@ -12,12 +12,17 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 - [ ] Parse ladder args:
 	- `--LadderServer <IpAddr>`
 	- `--GamePort <u16>`
-	- `--StartPort <u16>` 
+	- `--StartPort <u16>`
 	- `--OpponentId <str>`
 - [ ] Filter units and extract data
 - [ ] Work with positions, vectors, distances
-- [ ] Easy unit actions
-- [ ] Batch and filter actions
+	- [x] linalg crate
+	- [ ] trait extension for iterators
+- [ ] Easy actions
+	- [x] Action construction and storage
+	- [x] Batch actions with same ability and target
+	- [ ] Action making methods for unit
+	- [ ] Filter unnecessary actions
 - [ ] Resource harvesting
 - [ ] Unit training
 - [ ] Structure placement
@@ -26,3 +31,12 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 
 #[cfg(feature = "ids")]
 pub mod ids;
+
+#[cfg(feature = "unit")]
+pub mod unit;
+
+#[cfg(all(feature = "act", feature = "unit"))]
+pub mod act;
+
+#[cfg(feature = "linalg")]
+pub mod linalg;
