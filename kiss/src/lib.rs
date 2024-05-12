@@ -9,11 +9,7 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 
 ## Todo:
 - [x] Id generation
-- [ ] Parse ladder args:
-	- `--LadderServer <IpAddr>`
-	- `--GamePort <u16>`
-	- `--StartPort <u16>`
-	- `--OpponentId <str>`
+- [x] Parse ladder CLI args
 - [ ] Filter units and extract data
 - [ ] Work with positions, vectors, distances
 	- [x] linalg crate
@@ -40,3 +36,6 @@ pub mod act;
 
 #[cfg(feature = "linalg")]
 pub mod linalg;
+
+#[cfg(feature = "cli")]
+pub mod cli;

@@ -24,7 +24,7 @@ pub struct Client {
 /// Core methods
 impl Client {
 	/**
-	Connects to the given SC2API WebSocket server and returns [`Client`].
+	Connects to the given SC2 API WebSocket server and returns [`Client`].
 
 	# Errors
 
