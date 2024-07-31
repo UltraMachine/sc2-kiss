@@ -5,9 +5,9 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-prost = "0.12"
-serde = { version = "1", features = ["derive"], optional = true }
-glam = { version = "0.27", optional = true }
+prost = "0.13"
+serde = { version = "1.0", features = ["derive"], optional = true }
+glam = { version = "0.28", optional = true }
 
 [build-dependencies]
-prost-build = "0.12"
+prost-build = "0.13"

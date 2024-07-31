@@ -5,17 +5,17 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-tungstenite = "0.21"
+tungstenite = "0.23"
 sc2-prost = { version = "0.1.0", path = "../pb/prost" }
-prost = "0.12"
-thiserror = "1"
-camino = { version = "1", optional = true }
-bitflags = { version = "2", optional = true }
+prost = "0.13"
+thiserror = "1.0"
+camino = { version = "1.1", optional = true }
+bitflags = { version = "2.6", optional = true }
 
 [dev-dependencies]
 # For doc tests
-url = "2"
-http = "1"
+url = "2.5"
+http = "1.1"
 
 [features]
 default = ["request-methods"]

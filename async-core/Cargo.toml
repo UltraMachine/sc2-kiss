@@ -7,15 +7,15 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 sc2-core = { version = "0.1.0", path = "../core" }
 sc2-prost = { version = "0.1.0", path = "../pb/prost" }
-tokio-tungstenite = "0.21"
-tokio = { version = "1", features = ["net"] }
+tokio-tungstenite = "0.23"
+tokio = { version = "1.39", features = ["net"] }
 futures-util = "0.3"
 
 [dev-dependencies]
 # For doc tests
-tokio = { version = "1", features = ["net", "rt"] }
-url = "2"
-http = "1"
+tokio = { version = "1.39", features = ["net", "rt"] }
+url = "2.5"
+http = "1.1"
 
 [features]
 default = ["request-methods"]
