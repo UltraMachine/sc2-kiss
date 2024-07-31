@@ -68,8 +68,8 @@ impl Client {
 	# }).unwrap()
 	```
 	*/
-	pub async fn connect(to: impl ToUrl + Unpin) -> Result<Self> {
-		let (ws, _) = tokio_tungstenite::connect_async(to).await?;
+	pub async fn connect(url: impl ToUrl + Unpin) -> Result<Self> {
+		let (ws, _) = tokio_tungstenite::connect_async(url).await?;
 		Ok(Self {
 			ws,
 			status: Status::Unset,

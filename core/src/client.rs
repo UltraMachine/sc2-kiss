@@ -3,6 +3,28 @@ use tungstenite::stream::MaybeTlsStream;
 
 type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 
+/// Possible [`Client`] errors
+#[derive(Debug, Error)]
+pub enum Error {
+	/// WebSocket failure
+	#[error("WebSocket Error: {0}")]
+	WebSocket(#[from] tungstenite::Error),
+	/// Error decoding response
+	#[error("Decode Error: {0}")]
+	Decode(#[from] prost::DecodeError),
+	/// Response [`Kind`] doesn't match request [`Kind`]
+	#[error("Bad Response: `{0:?}`, expected `{1:?}`")]
+	BadRes(Kind, Kind),
+	/// The server [`Status`] didn't change to one of the expected states after the request
+	#[error("Bad Status: `{0:?}`, expected any of {1:?}")]
+	BadStatus(Status, Vec<Status>),
+	/// Response contains some errors
+	#[error("{0}")]
+	Sc2(#[from] Sc2Error),
+}
+
+pub type Result<T = (), E = Error> = std::result::Result<T, E>;
+
 /**
 Client interface to connect and communicate with SC2 instance.
 
@@ -54,8 +76,8 @@ impl Client {
 	# Ok::<(), sc2_core::Error>(())
 	```
 	*/
-	pub fn connect(to: impl ToUrl) -> Result<Self> {
-		let (ws, _) = tungstenite::connect(to)?;
+	pub fn connect(url: impl ToUrl) -> Result<Self> {
+		let (ws, _) = tungstenite::connect(url)?;
 		Ok(Self {
 			ws,
 			status: Status::Unset,

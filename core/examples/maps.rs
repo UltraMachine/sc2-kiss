@@ -5,7 +5,7 @@ fn main() {
 }
 
 fn main2() -> Result {
-	let mut client = Client::connect("ws://127.0.0.1:5000/sc2api")?;
+	let mut client = Client::connect("ws://[::1]:5000/sc2api")?;
 	let data = client.available_maps()?.data;
 	println!("Local maps:");
 	for map in data.local_map_paths {
