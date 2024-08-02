@@ -25,6 +25,9 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 - [ ] Micro control
 */
 
+pub use sc2_core;
+pub use sc2_prost;
+
 #[cfg(feature = "ids")]
 pub mod ids;
 
