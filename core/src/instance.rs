@@ -37,6 +37,8 @@ pub struct Launcher {
 	pub verbose: bool,
 	/// Sets rendering lib on linux. It has no effect on windows.
 	pub rendering_lib: Option<RenderingLib>,
+	/// Overrides behaviour on drop. By default, spawned process will continue to run even after program ends.
+	pub on_drop: OnDrop,
 }
 impl Default for Launcher {
 	fn default() -> Self {
@@ -48,12 +50,28 @@ impl Default for Launcher {
 			work_dir: <_>::default(),
 			verbose: false,
 			rendering_lib: None,
+			on_drop: <_>::default(),
 		}
 	}
 }
 impl Launcher {
-	pub fn new() -> Self {
-		Self::default()
+	pub fn new(game_dir: PathBuf) -> Self {
+		Self {
+			game_dir,
+			..<_>::default()
+		}
+	}
+	pub fn keep_on_drop(&mut self) -> &mut Self {
+		self.on_drop = OnDrop::Keep;
+		self
+	}
+	pub fn wait_on_drop(&mut self) -> &mut Self {
+		self.on_drop = OnDrop::Wait;
+		self
+	}
+	pub fn kill_on_drop(&mut self) -> &mut Self {
+		self.on_drop = OnDrop::Kill;
+		self
 	}
 	pub fn command(&self) -> io::Result<Command> {
 		let mut cmd_path = self.game_dir.clone();
@@ -119,7 +137,7 @@ impl Launcher {
 		self.command()?.spawn().map(|child| Instance {
 			child,
 			addr: self.addr,
-			on_drop: <_>::default(),
+			on_drop: self.on_drop,
 		})
 	}
 	pub fn output(&self) -> io::Result<Output> {
