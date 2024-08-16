@@ -184,7 +184,7 @@ impl Client {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameCfg {
 	/// Map for the game. Can be specified as a path or data bytes.
-	pub map: Load,
+	pub map: LoadMap,
 	/// Game participants.
 	pub participants: Vec<create_game::Participant>,
 	/// If set to `true`, fog of war will be disabled for all players
@@ -203,11 +203,11 @@ impl From<GameCfg> for Req {
 		Req::CreateGame(sc2_prost::RequestCreateGame {
 			map: Some(sc2_prost::request_create_game::Map::LocalMap(
 				match cfg.map {
-					Load::Path(path) => sc2_prost::LocalMap {
+					LoadMap::Path(path) => sc2_prost::LocalMap {
 						map_path: path.into(),
 						map_data: vec![],
 					},
-					Load::Data(data) => sc2_prost::LocalMap {
+					LoadMap::Data(data) => sc2_prost::LocalMap {
 						map_path: "".into(),
 						map_data: data,
 					},
@@ -339,7 +339,7 @@ pub mod join_game {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct ReplayCfg {
-	pub replay: Load,
+	pub replay: LoadMap,
 	pub map_data: Vec<u8>,
 	pub player: u32,
 	pub interface: Interface,
@@ -352,8 +352,8 @@ impl From<ReplayCfg> for Req {
 		use sc2_prost::request_start_replay::Replay::*;
 		Req::StartReplay(sc2_prost::RequestStartReplay {
 			replay: Some(match cfg.replay {
-				Load::Path(path) => ReplayPath(path.into()),
-				Load::Data(data) => ReplayData(data),
+				LoadMap::Path(path) => ReplayPath(path.into()),
+				LoadMap::Data(data) => ReplayData(data),
 			}),
 			map_data: cfg.map_data,
 			observed_player_id: cfg.player,

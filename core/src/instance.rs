@@ -3,6 +3,20 @@ use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::path::PathBuf;
 use std::process::{Child, Command, Output};
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+	#[error("OS error: {0}")]
+	Os(#[from] io::Error),
+	#[error("Must provide path to game directory")]
+	NoGameDir,
+	#[error("No game versions found")]
+	NoVersions,
+}
+
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RenderingLib {
 	/// Path to `libEGL.so`
@@ -61,6 +75,13 @@ impl Launcher {
 			..<_>::default()
 		}
 	}
+	pub fn with_addr(addr: SocketAddr, game_dir: PathBuf) -> Self {
+		Self {
+			addr,
+			game_dir,
+			..<_>::default()
+		}
+	}
 	pub fn keep_on_drop(&mut self) -> &mut Self {
 		self.on_drop = OnDrop::Keep;
 		self
@@ -73,7 +94,10 @@ impl Launcher {
 		self.on_drop = OnDrop::Kill;
 		self
 	}
-	pub fn command(&self) -> io::Result<Command> {
+	pub fn command(&self) -> Result<Command> {
+		if self.game_dir.as_os_str().is_empty() {
+			return Err(Error::NoGameDir);
+		}
 		let mut cmd_path = self.game_dir.clone();
 		cmd_path.push("Versions");
 		if !self.version.as_os_str().is_empty() {
@@ -82,11 +106,11 @@ impl Launcher {
 			let latest_version = cmd_path
 				.read_dir()?
 				.filter_map(|e| e.ok().and_then(|e| e.file_name().into_string().ok()))
-				.max_by_key(|s| s.split_at(4).1.parse::<u32>().unwrap_or(0));
+				.max_by_key(|s| s.get(..4).and_then(|s| s.parse::<u32>().ok()).unwrap_or(0));
 			if let Some(version) = latest_version {
 				cmd_path.push(version);
 			} else {
-				todo!("return error when can't find latest version");
+				return Err(Error::NoVersions);
 			}
 		}
 		if !self.bin.as_os_str().is_empty() {
@@ -133,15 +157,18 @@ impl Launcher {
 
 		Ok(cmd)
 	}
-	pub fn spawn(&self) -> io::Result<Instance> {
-		self.command()?.spawn().map(|child| Instance {
-			child,
-			addr: self.addr,
-			on_drop: self.on_drop,
-		})
+	pub fn spawn(&self) -> Result<Instance> {
+		self.command()?
+			.spawn()
+			.map(|child| Instance {
+				child,
+				addr: self.addr,
+				on_drop: self.on_drop,
+			})
+			.map_err(Error::Os)
 	}
-	pub fn output(&self) -> io::Result<Output> {
-		self.command()?.output()
+	pub fn output(&self) -> Result<Output> {
+		self.command()?.output().map_err(Error::Os)
 	}
 }
 

@@ -1,4 +1,5 @@
 use super::*;
+use std::net::SocketAddr;
 use tungstenite::stream::MaybeTlsStream;
 
 type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
@@ -7,16 +8,16 @@ type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 #[derive(Debug, Error)]
 pub enum Error {
 	/// WebSocket failure
-	#[error("WebSocket Error: {0}")]
+	#[error("WebSocket error: {0}")]
 	WebSocket(#[from] tungstenite::Error),
 	/// Error decoding response
-	#[error("Decode Error: {0}")]
+	#[error("Decode error: {0}")]
 	Decode(#[from] prost::DecodeError),
 	/// Response [`Kind`] doesn't match request [`Kind`]
-	#[error("Bad Response: `{0:?}`, expected `{1:?}`")]
+	#[error("Bad response: `{0:?}`, expected `{1:?}`")]
 	BadRes(Kind, Kind),
 	/// The server [`Status`] didn't change to one of the expected states after the request
-	#[error("Bad Status: `{0:?}`, expected any of {1:?}")]
+	#[error("Bad status: `{0:?}`, expected any of {1:?}")]
 	BadStatus(Status, Vec<Status>),
 	/// Response contains some errors
 	#[error("{0}")]
@@ -82,6 +83,10 @@ impl Client {
 			ws,
 			status: Status::Unset,
 		})
+	}
+
+	pub fn connect_addr(addr: SocketAddr) -> Result<Self> {
+		Self::connect(format!("ws://{addr}/sc2api"))
 	}
 
 	/**

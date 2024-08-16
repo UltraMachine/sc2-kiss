@@ -145,14 +145,14 @@ pub mod internal {
 			return Err(Error::BadRes(kind, req_kind));
 		}
 		check_errors(&res)?;
-		check_status(kind, res.status, old_status)?;
+		check_status(kind, res.status, *old_status)?;
+		*old_status = res.status;
 		Ok(res)
 	}
 
-	fn check_status(kind: Kind, now: Status, before: &mut Status) -> Result {
+	fn check_status(kind: Kind, now: Status, before: Status) -> Result {
 		use Status::*;
-		if *before == Unset {
-			*before = now;
+		if before == Unset {
 			return Ok(());
 		}
 		let expect = match kind {
@@ -164,10 +164,9 @@ pub mod internal {
 			Kind::Quit => vec![Quit],
 			Kind::Step | Kind::Observation => vec![InGame, InReplay, Ended],
 			Kind::Debug => return Ok(()),
-			_ => vec![*before],
+			_ => vec![before],
 		};
 		if expect.contains(&now) {
-			*before = now;
 			Ok(())
 		} else {
 			Err(Error::BadStatus(now, expect))

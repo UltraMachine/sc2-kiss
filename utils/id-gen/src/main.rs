@@ -1,5 +1,5 @@
 // #![allow(dead_code, unused_imports, unused_variables)]
-use bpaf::{construct, doc::Style, long, Bpaf, Parser};
+use bpaf::{construct, long, Bpaf, Parser};
 use camino::Utf8PathBuf;
 use convert_case::{Case, Casing};
 use sc2_core::{
@@ -52,24 +52,17 @@ enum Input {
 
 fn launch() -> impl Parser<Option<PathBuf>> {
 	let flag = long("launch")
-		.switch()
-		.map(|s| s.then(|| "/games/StarCraft II".into()))
+		.req_flag(())
+		.map(|_| "/games/StarCraft II".into())
 		.hide();
 	let arg = long("launch")
 		.argument("GAME_DIR")
-		.help("Launches SC2 Instance")
-		.map(Some);
-	construct!([arg, flag]).custom_usage(&[
-		("[", Style::Text),
-		("--launch", Style::Literal),
-		("=[", Style::Text),
-		("GAME_DIR", Style::Metavar),
-		("]]", Style::Text),
-	])
+		.help("Launches SC2 Instance");
+	construct!([arg, flag]).optional()
 }
 
 fn main() {
-	let opts = cli().fallback_to_usage().run();
+	let opts = cli().max_width(usize::MAX).fallback_to_usage().run();
 	gen(opts).unwrap_or_else(|e| eprintln!("{e}"))
 }
 
@@ -91,8 +84,7 @@ fn gen(opts: Cli) -> Result {
 			// give some time for SC2 to start
 			sleep(Duration::from_secs(3));
 
-			let url = format!("ws://{addr}/sc2api");
-			let mut client = Client::connect(url)?;
+			let mut client = Client::connect_addr(addr)?;
 
 			client.create_game(GameCfg {
 				map: map.into(),

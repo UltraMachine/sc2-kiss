@@ -58,18 +58,18 @@ pub mod common {
 	}
 
 	#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-	pub enum Load {
+	pub enum LoadMap {
 		Path(Utf8PathBuf),
 		Data(Vec<u8>),
 	}
-	impl Default for Load {
+	impl Default for LoadMap {
 		fn default() -> Self {
-			Load::Path(<_>::default())
+			LoadMap::Path(<_>::default())
 		}
 	}
-	impl<T: Into<Utf8PathBuf>> From<T> for Load {
+	impl<T: Into<Utf8PathBuf>> From<T> for LoadMap {
 		fn from(path: T) -> Self {
-			Load::Path(path.into())
+			LoadMap::Path(path.into())
 		}
 	}
 }

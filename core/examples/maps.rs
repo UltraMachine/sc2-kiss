@@ -1,11 +1,18 @@
 use sc2_core::{Client, Result};
+use std::env;
 
 fn main() {
-	main2().unwrap_or_else(|e| eprintln!("{e}"))
+	run().unwrap_or_else(|e| eprintln!("{e}"))
 }
 
-fn main2() -> Result {
-	let mut client = Client::connect("ws://[::1]:5000/sc2api")?;
+fn run() -> Result {
+	let addr = env::args()
+		.nth(1)
+		.map_or_else(|| "[::1]:5000".parse(), |s| s.parse())
+		.expect("Can't parse socket address");
+
+	let mut client = Client::connect_addr(addr)?;
+
 	let data = client.available_maps()?.data;
 	println!("Local maps:");
 	for map in data.local_map_paths {
@@ -15,5 +22,6 @@ fn main2() -> Result {
 	for map in data.battlenet_map_names {
 		println!("- {map}");
 	}
+
 	Ok(())
 }

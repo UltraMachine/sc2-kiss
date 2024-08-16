@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ReplayInfoCfg {
-	pub replay: Load,
+	pub replay: LoadMap,
 	pub download_data: bool,
 }
 impl From<ReplayInfoCfg> for Req {
@@ -10,8 +10,8 @@ impl From<ReplayInfoCfg> for Req {
 		use sc2_prost::request_replay_info::Replay::*;
 		Req::ReplayInfo(sc2_prost::RequestReplayInfo {
 			replay: Some(match cfg.replay {
-				Load::Path(path) => ReplayPath(path.into()),
-				Load::Data(data) => ReplayData(data),
+				LoadMap::Path(path) => ReplayPath(path.into()),
+				LoadMap::Data(data) => ReplayData(data),
 			}),
 			download_data: cfg.download_data,
 		})

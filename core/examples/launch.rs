@@ -1,15 +1,21 @@
-use sc2_core::instance::Launcher;
-use std::io;
+use sc2_core::instance::{Launcher, Result};
+use std::env;
 
 fn main() {
-	main2().unwrap_or_else(|e| eprintln!("{e}"))
+	run().unwrap_or_else(|e| eprintln!("{e}"))
 }
 
-fn main2() -> io::Result<()> {
-	let launcher = Launcher {
-		game_dir: "C:/games/StarCraft II".into(),
-		..Default::default()
-	};
+fn run() -> Result<()> {
+	let mut args = env::args();
+	let game_dir = args
+		.nth(1)
+		.map_or_else(|| "/games/StarCraft II".into(), Into::into);
+	let addr = args
+		.next()
+		.map_or_else(|| "[::1]:5000".parse(), |s| s.parse())
+		.expect("Can't parse socket address");
+
+	let launcher = Launcher::with_addr(addr, game_dir);
 	println!("Command: {:?}", launcher.command()?);
 	let mut instance = launcher.spawn()?;
 	println!("Spawned instance");
@@ -18,5 +24,6 @@ fn main2() -> io::Result<()> {
 		Some(code) => println!("Exited with code: {code}"),
 		None => println!("Terminated by signal"),
 	}
+
 	Ok(())
 }

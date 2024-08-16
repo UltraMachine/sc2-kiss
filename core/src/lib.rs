@@ -16,16 +16,25 @@ Start by looking into [`Client`] documentation.
 
 use thiserror::Error;
 
+#[cfg(feature = "client")]
 pub mod client;
+#[cfg(feature = "client")]
 pub use client::{Client, Error, Result};
-// mod server;
-// pub use server::Server;
-pub mod instance;
 
-pub mod common;
+// #[cfg(feature = "server")]
+// pub mod server;
+// #[cfg(feature = "server")]
+// pub use server::Server;
+
+#[cfg(feature = "instance")]
+pub mod instance;
+#[cfg(feature = "instance")]
+pub use instance::Launcher;
+
 #[cfg(feature = "request-methods")]
 pub mod request;
 
+pub mod common;
 use common::{internal::*, *};
 
 pub use sc2_prost::{self, request::Request as Req, response::Response as ResVar, Status};

@@ -18,5 +18,7 @@ url = "2.5"
 http = "1.1"
 
 [features]
-default = ["request-methods"]
-request-methods = ["camino", "bitflags"]
+default = ["client", "request-methods", "instance"]
+client = []
+request-methods = ["client", "dep:camino", "dep:bitflags"]
+instance = []
