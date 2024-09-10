@@ -1,10 +1,80 @@
 use super::*;
-use derive_more::From;
-use glam::Vec2;
 use std::collections::{HashMap, HashSet};
 
+use sc2_prost::{
+	action_raw_unit_command::Target as PbTarget, unit_order::Target as PbOrderTarget,
+	Action as PbAct, ActionRawUnitCommand as PbUnitCmd,
+};
+
 use ids::Ability;
+use linalg::{IVec2, Vec2};
 use unit::Tag;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Target<P = Vec2> {
+	Pos(P),
+	Unit(Tag),
+}
+
+impl From<Target> for PbTarget {
+	fn from(target: Target) -> Self {
+		match target {
+			Target::Pos(pos) => PbTarget::WorldSpacePos(pos.into()),
+			Target::Unit(tag) => PbTarget::UnitTag(tag.into()),
+		}
+	}
+}
+impl From<PbTarget> for Target {
+	fn from(target: PbTarget) -> Self {
+		match target {
+			PbTarget::WorldSpacePos(pos) => Self::Pos(pos.into()),
+			PbTarget::UnitTag(tag) => Self::Unit(tag.into()),
+		}
+	}
+}
+
+impl From<PbOrderTarget> for Target {
+	fn from(target: PbOrderTarget) -> Self {
+		match target {
+			PbOrderTarget::WorldSpacePos(pos) => Self::Pos(pos.as_vec2()),
+			PbOrderTarget::UnitTag(tag) => Self::Unit(tag.into()),
+		}
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Act<P = Vec2> {
+	pub ability: Ability,
+	pub target: Option<Target<P>>,
+	pub queue: bool,
+}
+impl<P> Act<P> {
+	pub fn new(ability: Ability) -> Self {
+		Self {
+			ability,
+			target: None,
+			queue: false,
+		}
+	}
+	pub fn target(mut self, target: Target<P>) -> Self {
+		self.target = Some(target);
+		self
+	}
+	pub fn target_none(mut self) -> Self {
+		self.target = None;
+		self
+	}
+	pub fn target_pos(self, pos: P) -> Self {
+		self.target(Target::Pos(pos))
+	}
+	pub fn target_unit(self, tag: Tag) -> Self {
+		self.target(Target::Unit(tag))
+	}
+	pub fn queue(mut self, queue: bool) -> Self {
+		self.queue = queue;
+		self
+	}
+}
 
 type ActHashable = (Ability, Option<Tag>, bool);
 type ActPos = (Ability, Vec2, bool);
@@ -12,11 +82,14 @@ type ActPos = (Ability, Vec2, bool);
 #[derive(Debug, Default)]
 pub struct Actions {
 	acts: HashMap<ActHashable, HashSet<Tag>>,
-	acts_pos: Vec<(ActPos, Vec<Tag>)>,
+	acts_pos: Vec<(ActPos, HashSet<Tag>)>,
 }
 impl Actions {
 	pub fn new() -> Self {
 		Self::default()
+	}
+	pub fn is_empty(&self) -> bool {
+		self.acts.is_empty() && self.acts_pos.is_empty()
 	}
 	pub fn add(&mut self, act: Act, tag: Tag) -> &mut Self {
 		self.add_batch(act, [tag])
@@ -26,9 +99,9 @@ impl Actions {
 		I: IntoIterator<Item = Tag>,
 	{
 		let target = match act.target {
-			Target::None => None,
-			Target::Unit(tag) => Some(tag),
-			Target::Pos(pos) => {
+			None => None,
+			Some(Target::Unit(tag)) => Some(tag),
+			Some(Target::Pos(pos)) => {
 				self.acts_pos
 					.push(((act.ability, pos, act.queue), tags.into_iter().collect()));
 				return self;
@@ -40,31 +113,59 @@ impl Actions {
 			.extend(tags);
 		self
 	}
+	pub fn into_vec(self) -> Vec<PbAct> {
+		self.into()
+	}
 }
 
-type UnitCmd = sc2_prost::ActionRawUnitCommand;
+impl<TS> Extend<(Act, TS)> for Actions
+where
+	TS: IntoIterator<Item = Tag>,
+{
+	fn extend<I>(&mut self, iter: I)
+	where
+		I: IntoIterator<Item = (Act, TS)>,
+	{
+		for (act, tags) in iter {
+			self.add_batch(act, tags);
+		}
+	}
+}
+impl<TS> FromIterator<(Act, TS)> for Actions
+where
+	TS: IntoIterator<Item = Tag>,
+{
+	fn from_iter<I>(iter: I) -> Self
+	where
+		I: IntoIterator<Item = (Act, TS)>,
+	{
+		let mut acts = Self::new();
+		acts.extend(iter);
+		acts
+	}
+}
 
-impl From<Actions> for Vec<sc2_prost::Action> {
+impl From<Actions> for Vec<PbAct> {
 	fn from(acts: Actions) -> Self {
 		acts.acts
 			.into_iter()
-			.map(|((abil, target, queue), tags)| UnitCmd {
+			.map(|((abil, target, queue), tags)| PbUnitCmd {
 				ability_id: abil.into(),
-				target: target.map(|tag| ActTarget::UnitTag(tag.into())),
+				target: target.map(|tag| PbTarget::UnitTag(tag.into())),
 				unit_tags: tags.into_iter().map(Into::into).collect(),
 				queue_command: queue,
 			})
 			.chain(
 				acts.acts_pos
 					.into_iter()
-					.map(|((abil, pos, queue), tags)| UnitCmd {
+					.map(|((abil, pos, queue), tags)| PbUnitCmd {
 						ability_id: abil.into(),
-						target: Some(ActTarget::WorldSpacePos(pos.into())),
+						target: Some(PbTarget::WorldSpacePos(pos.into())),
 						unit_tags: tags.into_iter().map(Into::into).collect(),
 						queue_command: queue,
 					}),
 			)
-			.map(|cmd| sc2_prost::Action {
+			.map(|cmd| PbAct {
 				action_raw: Some(sc2_prost::ActionRaw {
 					action: Some(sc2_prost::action_raw::Action::UnitCommand(cmd)),
 				}),
@@ -74,68 +175,101 @@ impl From<Actions> for Vec<sc2_prost::Action> {
 	}
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct Act {
-	pub ability: Ability,
-	pub target: Target,
-	pub queue: bool,
-}
-impl Act {
-	pub fn new(ability: Ability) -> Act {
-		Act {
-			ability,
-			..<_>::default()
-		}
-	}
-	pub fn target(mut self, target: Target) -> Act {
-		self.target = target;
-		self
-	}
-	pub fn target_pos(self, pos: Vec2) -> Act {
-		self.target(Target::Pos(pos))
-	}
-	pub fn target_unit(self, tag: Tag) -> Act {
-		self.target(Target::Unit(tag))
-	}
-	pub fn queue(mut self, queue: bool) -> Act {
-		self.queue = queue;
-		self
-	}
-}
+pub type ITarget = Target<IVec2>;
+pub type IAct = Act<IVec2>;
 
-use sc2_prost::action_raw_unit_command::Target as ActTarget;
-use sc2_prost::unit_order::Target as OrderTarget;
-
-#[derive(Debug, Default, From, Clone, Copy, PartialEq)]
-pub enum Target {
-	#[default]
-	None,
-	Pos(Vec2),
-	Unit(Tag),
-}
-
-impl From<Target> for Option<ActTarget> {
-	fn from(target: Target) -> Self {
+impl From<ITarget> for PbTarget {
+	fn from(target: ITarget) -> Self {
 		match target {
-			Target::None => None,
-			Target::Pos(pos) => Some(ActTarget::WorldSpacePos(pos.into())),
-			Target::Unit(tag) => Some(ActTarget::UnitTag(tag.into())),
+			ITarget::Pos(pos) => PbTarget::WorldSpacePos((pos.as_vec2() + 0.5).into()),
+			ITarget::Unit(tag) => PbTarget::UnitTag(tag.into()),
 		}
 	}
 }
-impl From<Option<ActTarget>> for Target {
-	fn from(target: Option<ActTarget>) -> Self {
-		target.map_or(Self::None, |t| match t {
-			ActTarget::WorldSpacePos(pos) => Self::Pos(pos.into()),
-			ActTarget::UnitTag(tag) => Self::Unit(tag.into()),
-		})
+impl From<PbTarget> for ITarget {
+	fn from(target: PbTarget) -> Self {
+		match target {
+			PbTarget::WorldSpacePos(pos) => Self::Pos(pos.as_ivec2()),
+			PbTarget::UnitTag(tag) => Self::Unit(tag.into()),
+		}
 	}
 }
-impl From<Option<OrderTarget>> for Target {
-	fn from(target: Option<OrderTarget>) -> Self {
-		target.map_or(Self::None, |t| match t {
-			OrderTarget::WorldSpacePos(pos) => Self::Pos(glam::Vec3::from(pos).truncate()),
-			OrderTarget::UnitTag(tag) => Self::Unit(tag.into()),
-		})
+
+impl From<PbOrderTarget> for ITarget {
+	fn from(target: PbOrderTarget) -> Self {
+		match target {
+			PbOrderTarget::WorldSpacePos(pos) => Self::Pos(pos.as_ivec2()),
+			PbOrderTarget::UnitTag(tag) => Self::Unit(tag.into()),
+		}
+	}
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct IActions(HashMap<IAct, HashSet<Tag>>);
+impl IActions {
+	pub fn new() -> Self {
+		Self::default()
+	}
+	pub fn is_empty(&self) -> bool {
+		self.0.is_empty()
+	}
+	pub fn add(&mut self, act: IAct, tag: Tag) -> &mut Self {
+		self.add_batch(act, [tag])
+	}
+	pub fn add_batch<I>(&mut self, act: IAct, tags: I) -> &mut Self
+	where
+		I: IntoIterator<Item = Tag>,
+	{
+		self.0.entry(act).or_default().extend(tags);
+		self
+	}
+	pub fn into_vec(self) -> Vec<PbAct> {
+		self.into()
+	}
+}
+impl<TS> Extend<(IAct, TS)> for IActions
+where
+	TS: IntoIterator<Item = Tag>,
+{
+	fn extend<I>(&mut self, iter: I)
+	where
+		I: IntoIterator<Item = (IAct, TS)>,
+	{
+		for (act, tags) in iter {
+			self.add_batch(act, tags);
+		}
+	}
+}
+impl<TS> FromIterator<(IAct, TS)> for IActions
+where
+	TS: IntoIterator<Item = Tag>,
+{
+	fn from_iter<I>(iter: I) -> Self
+	where
+		I: IntoIterator<Item = (IAct, TS)>,
+	{
+		let mut acts = Self::new();
+		acts.extend(iter);
+		acts
+	}
+}
+
+impl From<IActions> for Vec<PbAct> {
+	fn from(acts: IActions) -> Self {
+		acts.0
+			.into_iter()
+			.map(|(act, tags)| PbUnitCmd {
+				ability_id: act.ability.into(),
+				target: act.target.map(Into::into),
+				unit_tags: tags.into_iter().map(Into::into).collect(),
+				queue_command: act.queue,
+			})
+			.map(|cmd| PbAct {
+				action_raw: Some(sc2_prost::ActionRaw {
+					action: Some(sc2_prost::action_raw::Action::UnitCommand(cmd)),
+				}),
+				..<_>::default()
+			})
+			.collect()
 	}
 }
