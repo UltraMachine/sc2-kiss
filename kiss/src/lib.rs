@@ -46,5 +46,8 @@ pub mod linalg;
 #[cfg(feature = "game-loop")]
 pub mod game_loop;
 
+#[cfg(feature = "debug")]
+pub mod debug;
+
 #[cfg(feature = "cli")]
 pub mod cli;
