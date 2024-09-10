@@ -21,7 +21,7 @@ fn main() {
 		.field_attribute("UnitTypeData.attributes", serde_with("srd::attributes"))
 		.message_attribute("Weapon", serde)
 		.enum_attribute("Weapon.TargetType", serde)
-		.field_attribute("Weapon.type", serde_with("srd::weapon_target"))
+		.field_attribute("Weapon.target", serde_with("srd::weapon_target"))
 		.message_attribute("DamageBonus", serde)
 		.field_attribute("DamageBonus.attribute", serde_with("srd::attribute"))
 		.message_attribute("UpgradeData", serde)
