@@ -1,6 +1,7 @@
 use super::*;
-use sc2_prost::Unit;
 use std::fmt;
+
+pub use sc2_prost::Unit as RawUnit;
 
 /// Methods for extracting various data from unit
 pub trait UnitExt {
@@ -11,8 +12,13 @@ pub trait UnitExt {
 	fn pos2(&self) -> glam::Vec2;
 	#[cfg(feature = "linalg")]
 	fn pos3(&self) -> glam::Vec3;
+	#[cfg(feature = "linalg")]
+	fn ipos2(&self) -> glam::IVec2;
+	#[cfg(feature = "linalg")]
+	fn ipos3(&self) -> glam::IVec3;
 }
-impl UnitExt for Unit {
+
+impl UnitExt for RawUnit {
 	fn tag(&self) -> Tag {
 		self.tag.into()
 	}
@@ -22,11 +28,19 @@ impl UnitExt for Unit {
 	}
 	#[cfg(feature = "linalg")]
 	fn pos2(&self) -> glam::Vec2 {
-		self.pos3().truncate()
+		self.pos.map_or(glam::Vec2::ZERO, |p| p.as_vec2())
 	}
 	#[cfg(feature = "linalg")]
 	fn pos3(&self) -> glam::Vec3 {
-		self.pos.clone().map_or(glam::Vec3::ZERO, Into::into)
+		self.pos.map_or(glam::Vec3::ZERO, Into::into)
+	}
+	#[cfg(feature = "linalg")]
+	fn ipos2(&self) -> glam::IVec2 {
+		self.pos.map_or(glam::IVec2::ZERO, |p| p.as_ivec2())
+	}
+	#[cfg(feature = "linalg")]
+	fn ipos3(&self) -> glam::IVec3 {
+		self.pos.map_or(glam::IVec3::ZERO, |p| p.as_ivec3())
 	}
 }
 

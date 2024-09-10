@@ -43,8 +43,8 @@ mod srd {
 
 #[cfg(feature = "glam")]
 mod glam {
-	use crate::{Point, Point2D};
-	use glam::{Vec2, Vec3};
+	use crate::{Point, Point2D, PointI, Size2Di};
+	use glam::{IVec2, IVec3, Vec2, Vec3};
 
 	macro_rules! from {
 		(@ $T:ident[$($f:ident),+] = $F:ident) => {
@@ -62,5 +62,46 @@ mod glam {
 	from! {
 		Vec2[x,y] = Point2D
 		Vec3[x,y,z] = Point
+		IVec2[x,y] = PointI
+		IVec2[x,y] = Size2Di
+	}
+
+	impl Point2D {
+		pub fn as_vec2(self) -> Vec2 {
+			self.into()
+		}
+		pub fn as_ivec2(self) -> IVec2 {
+			IVec2::new(self.x as i32, self.y as i32)
+		}
+	}
+	impl Point {
+		pub fn as_vec3(self) -> Vec3 {
+			self.into()
+		}
+		pub fn as_ivec3(self) -> IVec3 {
+			IVec3::new(self.x as i32, self.y as i32, self.z as i32)
+		}
+		pub fn as_vec2(self) -> Vec2 {
+			Vec2::new(self.x, self.y)
+		}
+		pub fn as_ivec2(self) -> IVec2 {
+			IVec2::new(self.x as i32, self.y as i32)
+		}
+	}
+	impl PointI {
+		pub fn as_ivec2(self) -> IVec2 {
+			self.into()
+		}
+		pub fn as_vec2(self) -> Vec2 {
+			Vec2::new(self.x as f32, self.y as f32)
+		}
+	}
+	impl Size2Di {
+		pub fn as_ivec2(self) -> IVec2 {
+			self.into()
+		}
+		pub fn as_vec2(self) -> Vec2 {
+			Vec2::new(self.x as f32, self.y as f32)
+		}
 	}
 }
