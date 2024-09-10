@@ -25,6 +25,13 @@ pub enum RenderingLib {
 	OsMesa(PathBuf),
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DisplayMode {
+	Windowed,
+	#[default]
+	FullScreen,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Launcher {
 	/// Addres that the SC2 API WebSocket server will listen on.
@@ -53,6 +60,7 @@ pub struct Launcher {
 	pub rendering_lib: Option<RenderingLib>,
 	/// Overrides behaviour on drop. By default, spawned process will continue to run even after program ends.
 	pub on_drop: OnDrop,
+	pub display_mode: DisplayMode,
 }
 impl Default for Launcher {
 	fn default() -> Self {
@@ -65,6 +73,7 @@ impl Default for Launcher {
 			verbose: false,
 			rendering_lib: None,
 			on_drop: <_>::default(),
+			display_mode: <_>::default(),
 		}
 	}
 }
@@ -92,6 +101,14 @@ impl Launcher {
 	}
 	pub fn kill_on_drop(&mut self) -> &mut Self {
 		self.on_drop = OnDrop::Kill;
+		self
+	}
+	pub fn windowed(&mut self) -> &mut Self {
+		self.display_mode = DisplayMode::Windowed;
+		self
+	}
+	pub fn fullscreen(&mut self) -> &mut Self {
+		self.display_mode = DisplayMode::FullScreen;
 		self
 	}
 	pub fn command(&self) -> Result<Command> {
@@ -130,6 +147,9 @@ impl Launcher {
 			.arg(self.addr.port().to_string());
 		if self.verbose {
 			cmd.arg("-verbose");
+		}
+		if self.display_mode == DisplayMode::Windowed {
+			cmd.arg("-displayMode").arg("0");
 		}
 		match &self.rendering_lib {
 			None => {}
