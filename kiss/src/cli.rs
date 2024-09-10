@@ -1,10 +1,10 @@
-use std::net::IpAddr;
-
 use sc2_core::{request::JoinCfg, Client, Result};
+use std::net::{IpAddr, SocketAddr};
 
+#[cfg(feature = "ai-arena")]
 #[allow(clippy::needless_doctest_main)]
 /**
-Ladder CLI args
+AI Arena Ladder CLI args
 
 # Examples
 <details>
@@ -18,7 +18,7 @@ use sc2_kiss::cli::*;
 #[bpaf(options)]
 struct Cli {
 	#[bpaf(external)]
-	ladder: Ladder,
+	ladder: AiArena,
 }
 
 fn main() {
@@ -37,7 +37,7 @@ use sc2_kiss::cli::*;
 #[derive(Debug, Clone, Parser)]
 struct Cli {
 	#[command(flatten)]
-	ladder: Ladder,
+	ladder: AiArena,
 }
 
 fn main() {
@@ -49,7 +49,7 @@ fn main() {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "cli-bpaf", derive(bpaf::Bpaf))]
 #[cfg_attr(feature = "cli-clap", derive(clap::Args))]
-pub struct Ladder {
+pub struct AiArena {
 	/// IP of SC2 API server to connect with client
 	#[cfg_attr(feature = "cli-bpaf", bpaf(long("LadderServer"), argument("IP")))]
 	#[cfg_attr(feature = "cli-clap", arg(long("LadderServer"), value_name("IP")))]
@@ -89,10 +89,11 @@ pub struct Ladder {
 	#[cfg_attr(feature = "cli-clap", arg(long("RealTime")))]
 	pub realtime: bool,
 }
-impl Ladder {
+#[cfg(feature = "ai-arena")]
+impl AiArena {
 	/// Connects to the SC2 API with parsed IP and port
 	pub fn connect(&self) -> Result<Client> {
-		Client::connect(format!("ws://{}:{}/sc2api", self.ip, self.port))
+		Client::connect_addr(SocketAddr::new(self.ip, self.port))
 	}
 	/// Sets correct `server_ports` and `client_ports` in [`JoinCfg`]
 	pub fn set_ports(&self, join_cfg: &mut JoinCfg) {
