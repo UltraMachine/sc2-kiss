@@ -1,6 +1,11 @@
 use super::*;
-use std::net::SocketAddr;
-use tungstenite::stream::MaybeTlsStream;
+use std::{
+	io,
+	net::SocketAddr,
+	thread::sleep,
+	time::{Duration, Instant},
+};
+use tungstenite::{error::UrlError, http, stream::MaybeTlsStream, Error as WsError};
 
 type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 
@@ -9,7 +14,7 @@ type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 pub enum Error {
 	/// WebSocket failure
 	#[error("WebSocket error: {0}")]
-	WebSocket(#[from] tungstenite::Error),
+	WebSocket(#[from] WsError),
 	/// Error decoding response
 	#[error("Decode error: {0}")]
 	Decode(#[from] prost::DecodeError),
@@ -46,6 +51,14 @@ pub struct Client {
 }
 /// Core methods
 impl Client {
+	fn connect_imp(url: http::Request<()>) -> Result<Self> {
+		let (ws, _) = tungstenite::connect(url)?;
+		Ok(Self {
+			ws,
+			status: Status::Unset,
+		})
+	}
+
 	/**
 	Connects to the given SC2 API WebSocket server and returns [`Client`].
 
@@ -78,15 +91,32 @@ impl Client {
 	```
 	*/
 	pub fn connect(url: impl ToUrl) -> Result<Self> {
-		let (ws, _) = tungstenite::connect(url)?;
-		Ok(Self {
-			ws,
-			status: Status::Unset,
-		})
+		Self::connect_imp(url.into_client_request()?)
 	}
 
 	pub fn connect_addr(addr: SocketAddr) -> Result<Self> {
 		Self::connect(format!("ws://{addr}/sc2api"))
+	}
+
+	pub fn connect_timeout(url: impl ToUrl, timeout: Duration) -> Result<Self> {
+		let now = Instant::now();
+		let url = url.into_client_request()?;
+		loop {
+			match Self::connect_imp(url.clone()) {
+				ok @ Ok(_) => return ok,
+				Err(Error::WebSocket(WsError::Url(UrlError::UnableToConnect(_)))) => {}
+				err @ Err(_) => return err,
+			}
+			if now.elapsed() >= timeout {
+				let e = io::Error::new(io::ErrorKind::TimedOut, "connection timed out");
+				return Err(Error::WebSocket(WsError::Io(e)));
+			}
+			sleep(Duration::from_secs(1));
+		}
+	}
+
+	pub fn connect_addr_timeout(addr: SocketAddr, timeout: Duration) -> Result<Self> {
+		Self::connect_timeout(format!("ws://{addr}/sc2api"), timeout)
 	}
 
 	/**
