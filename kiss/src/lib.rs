@@ -10,6 +10,7 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 ## Todo:
 - [x] Id generation
 - [x] Parse ladder CLI args
+- [ ] Add CLI parser for local play
 - [ ] Filter units and extract data
 - [ ] Work with positions, vectors, distances
 	- [x] linalg crate
@@ -17,11 +18,13 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 - [ ] Easy actions
 	- [x] Action construction and storage
 	- [x] Batch actions with same ability and target
-	- [ ] Action making methods for unit
-	- [ ] Filter unnecessary actions
+	- [ ] Action making methods for unit?
+- [ ] Structure placement
+	- [ ] Expansions
+	- [ ] General buildings
+	- [ ] Ramps + walls
 - [ ] Resource harvesting
 - [ ] Unit training
-- [ ] Structure placement
 - [ ] Micro control
 */
 
