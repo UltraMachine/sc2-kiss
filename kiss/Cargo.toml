@@ -17,11 +17,12 @@ clap = "4.5"
 camino = "1.1"
 
 [features]
-default = ["ids", "unit", "act", "linalg", "cli"]
+default = ["ids", "unit", "act", "linalg", "game-loop", "cli"]
 ids = []
 unit = []
 act = []
 linalg = ["dep:glam", "sc2-prost/glam", "dep:ordered-float"]
+game-loop = []
 cli = []
 cli-clap = ["dep:clap", "cli"]
 cli-bpaf = ["dep:bpaf", "cli"]
