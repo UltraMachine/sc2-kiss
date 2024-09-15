@@ -1,6 +1,7 @@
 use super::*;
 use std::collections::{HashMap, HashSet};
 
+use sc2_core::{Client, Result};
 use sc2_prost::{
 	action_raw_unit_command::Target as PbTarget, unit_order::Target as PbOrderTarget,
 	Action as PbAct, ActionRawUnitCommand as PbUnitCmd,
@@ -116,6 +117,39 @@ impl Actions {
 	pub fn into_vec(self) -> Vec<PbAct> {
 		self.into()
 	}
+	pub fn flush_to_vec(&mut self, buf: &mut Vec<PbAct>) {
+		let it = self
+			.acts
+			.drain()
+			.map(|((abil, target, queue), tags)| PbUnitCmd {
+				ability_id: abil.into(),
+				target: target.map(|tag| PbTarget::UnitTag(tag.into())),
+				unit_tags: tags.into_iter().map(Into::into).collect(),
+				queue_command: queue,
+			})
+			.chain(
+				self.acts_pos
+					.drain(..)
+					.map(|((abil, pos, queue), tags)| PbUnitCmd {
+						ability_id: abil.into(),
+						target: Some(PbTarget::WorldSpacePos(pos.into())),
+						unit_tags: tags.into_iter().map(Into::into).collect(),
+						queue_command: queue,
+					}),
+			)
+			.map(|cmd| PbAct {
+				action_raw: Some(sc2_prost::ActionRaw {
+					action: Some(sc2_prost::action_raw::Action::UnitCommand(cmd)),
+				}),
+				..<_>::default()
+			});
+		buf.extend(it);
+	}
+	pub fn flush(&mut self, client: &mut Client) -> Result {
+		let mut buf = vec![];
+		self.flush_to_vec(&mut buf);
+		client.action(buf).map(|_| ())
+	}
 }
 
 impl<TS> Extend<(Act, TS)> for Actions
@@ -146,32 +180,10 @@ where
 }
 
 impl From<Actions> for Vec<PbAct> {
-	fn from(acts: Actions) -> Self {
-		acts.acts
-			.into_iter()
-			.map(|((abil, target, queue), tags)| PbUnitCmd {
-				ability_id: abil.into(),
-				target: target.map(|tag| PbTarget::UnitTag(tag.into())),
-				unit_tags: tags.into_iter().map(Into::into).collect(),
-				queue_command: queue,
-			})
-			.chain(
-				acts.acts_pos
-					.into_iter()
-					.map(|((abil, pos, queue), tags)| PbUnitCmd {
-						ability_id: abil.into(),
-						target: Some(PbTarget::WorldSpacePos(pos.into())),
-						unit_tags: tags.into_iter().map(Into::into).collect(),
-						queue_command: queue,
-					}),
-			)
-			.map(|cmd| PbAct {
-				action_raw: Some(sc2_prost::ActionRaw {
-					action: Some(sc2_prost::action_raw::Action::UnitCommand(cmd)),
-				}),
-				..<_>::default()
-			})
-			.collect()
+	fn from(mut acts: Actions) -> Self {
+		let mut buf = vec![];
+		acts.flush_to_vec(&mut buf);
+		buf
 	}
 }
 
@@ -226,7 +238,31 @@ impl IActions {
 	pub fn into_vec(self) -> Vec<PbAct> {
 		self.into()
 	}
+	pub fn flush_to_vec(&mut self, buf: &mut Vec<PbAct>) {
+		let it = self
+			.0
+			.drain()
+			.map(|(act, tags)| PbUnitCmd {
+				ability_id: act.ability.into(),
+				target: act.target.map(Into::into),
+				unit_tags: tags.into_iter().map(Into::into).collect(),
+				queue_command: act.queue,
+			})
+			.map(|cmd| PbAct {
+				action_raw: Some(sc2_prost::ActionRaw {
+					action: Some(sc2_prost::action_raw::Action::UnitCommand(cmd)),
+				}),
+				..<_>::default()
+			});
+		buf.extend(it);
+	}
+	pub fn flush(&mut self, client: &mut Client) -> Result {
+		let mut buf = vec![];
+		self.flush_to_vec(&mut buf);
+		client.action(buf).map(|_| ())
+	}
 }
+
 impl<TS> Extend<(IAct, TS)> for IActions
 where
 	TS: IntoIterator<Item = Tag>,
@@ -255,21 +291,9 @@ where
 }
 
 impl From<IActions> for Vec<PbAct> {
-	fn from(acts: IActions) -> Self {
-		acts.0
-			.into_iter()
-			.map(|(act, tags)| PbUnitCmd {
-				ability_id: act.ability.into(),
-				target: act.target.map(Into::into),
-				unit_tags: tags.into_iter().map(Into::into).collect(),
-				queue_command: act.queue,
-			})
-			.map(|cmd| PbAct {
-				action_raw: Some(sc2_prost::ActionRaw {
-					action: Some(sc2_prost::action_raw::Action::UnitCommand(cmd)),
-				}),
-				..<_>::default()
-			})
-			.collect()
+	fn from(mut acts: IActions) -> Self {
+		let mut buf = vec![];
+		acts.flush_to_vec(&mut buf);
+		buf
 	}
 }
