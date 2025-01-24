@@ -93,12 +93,6 @@ impl Buff {
 	pub const HIDDEN: Self = Self(87);
 	pub const MINE_DRONE_DOT: Self = Self(88);
 	pub const MEDIVAC_SPEED_BOOST: Self = Self(89);
-	pub const EXTEND_BRIDGE_EXTENDING_BRIDGE_NE_WIDE_8_OUT: Self = Self(90);
-	pub const EXTEND_BRIDGE_EXTENDING_BRIDGE_NW_WIDE_8_OUT: Self = Self(91);
-	pub const EXTEND_BRIDGE_EXTENDING_BRIDGE_NE_WIDE_10_OUT: Self = Self(92);
-	pub const EXTEND_BRIDGE_EXTENDING_BRIDGE_NW_WIDE_10_OUT: Self = Self(93);
-	pub const EXTEND_BRIDGE_EXTENDING_BRIDGE_NE_WIDE_12_OUT: Self = Self(94);
-	pub const EXTEND_BRIDGE_EXTENDING_BRIDGE_NW_WIDE_12_OUT: Self = Self(95);
 	pub const PHASE_SHIELD: Self = Self(96);
 	pub const PURIFY: Self = Self(97);
 	pub const VOID_SIPHON: Self = Self(98);
@@ -277,12 +271,6 @@ impl fmt::Display for Buff {
 			87 => "Hidden",
 			88 => "Mine Drone Dot",
 			89 => "Medivac Speed Boost",
-			90 => "Extend Bridge Extending Bridge Ne Wide 8 Out",
-			91 => "Extend Bridge Extending Bridge Nw Wide 8 Out",
-			92 => "Extend Bridge Extending Bridge Ne Wide 10 Out",
-			93 => "Extend Bridge Extending Bridge Nw Wide 10 Out",
-			94 => "Extend Bridge Extending Bridge Ne Wide 12 Out",
-			95 => "Extend Bridge Extending Bridge Nw Wide 12 Out",
 			96 => "Phase Shield",
 			97 => "Purify",
 			98 => "Void Siphon",

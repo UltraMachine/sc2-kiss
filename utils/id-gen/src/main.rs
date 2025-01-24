@@ -134,7 +134,9 @@ fn gen(opts: Cli) -> Result {
 	let abils = data
 		.abilities
 		.into_iter()
-		.filter(|abil| abil.available && abil.remaps_to_ability_id == 0)
+		.filter(|abil| {
+			abil.available && abil.remaps_to_ability_id == 0 && !abil.button_name.is_empty()
+		})
 		.map(|abil| {
 			(
 				if abil_names.insert(abil.friendly_name.clone()) {
@@ -150,11 +152,22 @@ fn gen(opts: Cli) -> Result {
 	let units = data
 		.units
 		.into_iter()
-		.filter(|unit| unit.available)
+		.filter(|unit| {
+			unit.available
+				&& !(unit.name.ends_with("Dummy")
+					|| unit.name.contains("Weapon")
+					|| unit.name.ends_with("Missile")
+					|| unit.name.starts_with("Shape")
+					|| unit.name.starts_with("LoadOutSpray"))
+		})
 		.map(|unit| (unit.name, unit.unit_id));
 	make_ids(out_dir.clone(), "unit_kind", units).expect("Failed to make unit ids");
 
-	let upgrades = data.upgrades.into_iter().map(|up| (up.name, up.upgrade_id));
+	let upgrades = data
+		.upgrades
+		.into_iter()
+		.filter(|up| up.ability_id != 0)
+		.map(|up| (up.name, up.upgrade_id));
 	make_ids(out_dir.clone(), "upgrade", upgrades).expect("Failed to make upgrade ids");
 
 	let buffs = data.buffs.into_iter().map(|buff| (buff.name, buff.buff_id));
@@ -193,7 +206,11 @@ impl {0} {{
 	)?;
 	let mut ids_copy = vec![];
 	for (name, id) in ids {
-		if name.chars().next().map_or(true, |c| c.is_ascii_digit()) || name.starts_with("Dummy") {
+		if name.chars().next().map_or(true, |c| c.is_ascii_digit())
+			|| name.starts_with("Dummy")
+			|| name.contains("Bridge")
+			|| name.contains("Door")
+		{
 			continue;
 		}
 		let name = name.replace('@', "").to_case(Case::UpperSnake);
