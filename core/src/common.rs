@@ -211,10 +211,10 @@ pub mod internal {
 			id: 0,
 			request: Some(req),
 		};
-		tungstenite::Message::Binary(req.encode_to_vec())
+		tungstenite::Message::Binary(req.encode_to_vec().into())
 	}
 	pub fn res_from_msg(msg: tungstenite::Message, req_kind: Kind) -> Result<Res> {
-		let res = sc2_prost::Response::decode(msg.into_data().as_slice())?;
+		let res = sc2_prost::Response::decode(msg.into_data())?;
 		Res::try_from(res).map_err(|mut e| {
 			if e.kind == Kind::None {
 				e.kind = req_kind;
