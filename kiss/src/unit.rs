@@ -1,11 +1,13 @@
 use super::*;
 use std::fmt;
 
+use sc2_core::common::PlayerId;
 pub use sc2_prost::Unit as RawUnit;
 
 /// Methods for extracting various data from unit
 pub trait UnitExt {
 	fn tag(&self) -> Tag;
+	fn owner(&self) -> PlayerId;
 	#[cfg(feature = "ids")]
 	fn kind(&self) -> ids::UnitKind;
 	#[cfg(feature = "linalg")]
@@ -21,6 +23,9 @@ pub trait UnitExt {
 impl UnitExt for RawUnit {
 	fn tag(&self) -> Tag {
 		self.tag.into()
+	}
+	fn owner(&self) -> PlayerId {
+		self.owner.into()
 	}
 	#[cfg(feature = "ids")]
 	fn kind(&self) -> ids::UnitKind {

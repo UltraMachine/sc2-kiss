@@ -1,5 +1,6 @@
 use super::*;
 use prost::Message;
+use std::fmt;
 
 /// Enum to identify kind of request/response
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -132,6 +133,28 @@ impl<R> Res<R> {
 			status: self.status,
 			warns: self.warns,
 		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct PlayerId(pub u32);
+impl PlayerId {
+	pub const NEUTRAL: Self = Self(0);
+}
+impl fmt::Display for PlayerId {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.0)
+	}
+}
+impl From<u32> for PlayerId {
+	fn from(num: u32) -> Self {
+		Self(num)
+	}
+}
+impl From<PlayerId> for u32 {
+	fn from(player_id: PlayerId) -> u32 {
+		player_id.0
 	}
 }
 

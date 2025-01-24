@@ -97,8 +97,8 @@ impl Client {
 
 	[`player_id`]: sc2_prost::ResponseJoinGame::player_id
 	*/
-	pub fn join_game(&mut self, cfg: JoinCfg) -> Result<Res<u32>> {
-		unwrap_data!(self.send(cfg.into()); JoinGame player_id)
+	pub fn join_game(&mut self, cfg: JoinCfg) -> Result<Res<PlayerId>> {
+		unwrap_data!(self.send(cfg.into()); JoinGame player_id).map(|r| r.map(Into::into))
 	}
 	/**
 	Sends [`RestartGame`](Req::RestartGame) request to the server.
@@ -264,7 +264,7 @@ pub mod create_game {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct JoinCfg {
 	/// Can join as a player with the specified [`Race`]
-	/// or as an observer with the specified Id.
+	/// or as an observer of the player with specified [`PlayerId`].
 	pub join_as: join_game::JoinAs,
 	/// Interface config
 	pub interface: Interface,
@@ -281,7 +281,7 @@ impl From<JoinCfg> for Req {
 		Req::JoinGame(sc2_prost::RequestJoinGame {
 			participation: Some(match cfg.join_as {
 				JoinAs::Player(race) => Race(race as i32),
-				JoinAs::Observer(id) => ObservedPlayerId(id),
+				JoinAs::Observer(id) => ObservedPlayerId(id.into()),
 			}),
 			options: Some(cfg.interface.into()),
 			server_ports: cfg.server_ports.map(Into::into),
@@ -299,7 +299,7 @@ pub mod join_game {
 	#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 	pub enum JoinAs {
 		Player(Race),
-		Observer(u32),
+		Observer(PlayerId),
 	}
 	impl Default for JoinAs {
 		fn default() -> Self {
