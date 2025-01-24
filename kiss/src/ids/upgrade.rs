@@ -163,6 +163,7 @@ impl Upgrade {
 	pub const PSIONIC_AMPLIFIERS: Self = Self(302);
 	pub const SECRETED_COATING: Self = Self(303);
 	pub const ENHANCED_SHOCKWAVES: Self = Self(304);
+	pub const FRENZY: Self = Self(305);
 }
 impl fmt::Display for Upgrade {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -326,6 +327,7 @@ impl fmt::Display for Upgrade {
 			302 => "Psionic Amplifiers",
 			303 => "Secreted Coating",
 			304 => "Enhanced Shockwaves",
+			305 => "Frenzy",
 			_ => return write!(f, "{self:?}"),
 		};
 		write!(f, "{s}")

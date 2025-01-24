@@ -10,8 +10,6 @@ impl Ability {
 	pub const MOVE_TURN: Self = Self(20);
 	pub const ATTACK_ATTACK_TOWARDS: Self = Self(24);
 	pub const ATTACK_ATTACK_BARRAGE: Self = Self(25);
-	pub const EFFECT_SALVAGE: Self = Self(32);
-	pub const SALVAGE_SHARED_1: Self = Self(33);
 	pub const MORPH_INFESTED_TERRANS: Self = Self(40);
 	pub const EFFECT_EXPLODE: Self = Self(42);
 	pub const RESEARCH_INTERCEPTOR_GRAVITON_CATAPULT: Self = Self(44);
@@ -967,7 +965,7 @@ impl Ability {
 	pub const SPAWNING_POOL_RESEARCH_29: Self = Self(1281);
 	pub const RESEARCH_GROOVED_SPINES: Self = Self(1282);
 	pub const RESEARCH_MUSCULAR_AUGMENTS: Self = Self(1283);
-	pub const HYDRALISK_DEN_RESEARCH_2: Self = Self(1284);
+	pub const RESEARCH_RESEARCH_FRENZY: Self = Self(1284);
 	pub const HYDRALISK_DEN_RESEARCH_3: Self = Self(1285);
 	pub const RESEARCH_RESEARCH_LURKER_RANGE: Self = Self(1286);
 	pub const HYDRALISK_DEN_RESEARCH_5: Self = Self(1287);
@@ -1223,7 +1221,6 @@ impl Ability {
 	pub const TWILIGHT_COUNCIL_RESEARCH_28: Self = Self(1620);
 	pub const TWILIGHT_COUNCIL_RESEARCH_29: Self = Self(1621);
 	pub const EFFECT_NUKE_CALLDOWN: Self = Self(1622);
-	pub const SALVAGE_BUNKER_REFUND_SALVAGE: Self = Self(1624);
 	pub const EFFECT_EMP: Self = Self(1628);
 	pub const TRAIN_QUEEN: Self = Self(1632);
 	pub const TRAIN_QUEEN_1: Self = Self(1633);
@@ -2024,8 +2021,12 @@ impl Ability {
 	pub const PORT_CITY_BRIDGE_UNIT_E_12_2: Self = Self(4431);
 	pub const PORT_CITY_BRIDGE_UNIT_W_12_OUT_2: Self = Self(4432);
 	pub const PORT_CITY_BRIDGE_UNIT_W_12_2: Self = Self(4433);
-	pub const PURIFY_MORPH_PYLON_2: Self = Self(4436);
-	pub const PURIFY_MORPH_PYLON_BACK_2: Self = Self(4437);
+	pub const HYDRALISK_FRENZY_0: Self = Self(4435);
+	pub const PURIFY_MORPH_PYLON_2: Self = Self(4438);
+	pub const PURIFY_MORPH_PYLON_BACK_2: Self = Self(4439);
+	pub const EFFECT_ENERGY_RECHARGE: Self = Self(4440);
+	pub const EFFECT_SALVAGE: Self = Self(4442);
+	pub const EFFECT_GATHER: Self = Self(4446);
 }
 impl fmt::Display for Ability {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -2036,8 +2037,6 @@ impl fmt::Display for Ability {
 			20 => "Move Turn",
 			24 => "Attack Attack Towards",
 			25 => "Attack Attack Barrage",
-			32 => "Effect Salvage",
-			33 => "Salvage Shared 1",
 			40 => "Morph Infested Terrans",
 			42 => "Effect Explode",
 			44 => "Research Interceptor Graviton Catapult",
@@ -2993,7 +2992,7 @@ impl fmt::Display for Ability {
 			1281 => "Spawning Pool Research 29",
 			1282 => "Research Grooved Spines",
 			1283 => "Research Muscular Augments",
-			1284 => "Hydralisk Den Research 2",
+			1284 => "Research Research Frenzy",
 			1285 => "Hydralisk Den Research 3",
 			1286 => "Research Research Lurker Range",
 			1287 => "Hydralisk Den Research 5",
@@ -3249,7 +3248,6 @@ impl fmt::Display for Ability {
 			1620 => "Twilight Council Research 28",
 			1621 => "Twilight Council Research 29",
 			1622 => "Effect Nuke Calldown",
-			1624 => "Salvage Bunker Refund Salvage",
 			1628 => "Effect Emp",
 			1632 => "Train Queen",
 			1633 => "Train Queen 1",
@@ -4050,8 +4048,12 @@ impl fmt::Display for Ability {
 			4431 => "Port City Bridge Unit E 12 2",
 			4432 => "Port City Bridge Unit W 12 Out 2",
 			4433 => "Port City Bridge Unit W 12 2",
-			4436 => "Purify Morph Pylon 2",
-			4437 => "Purify Morph Pylon Back 2",
+			4435 => "Hydralisk Frenzy 0",
+			4438 => "Purify Morph Pylon 2",
+			4439 => "Purify Morph Pylon Back 2",
+			4440 => "Effect Energy Recharge",
+			4442 => "Effect Salvage",
+			4446 => "Effect Gather",
 			_ => return write!(f, "{self:?}"),
 		};
 		write!(f, "{s}")
