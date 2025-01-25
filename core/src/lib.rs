@@ -12,6 +12,8 @@ Start by looking into [`Client`] documentation.
 - [x] Optional methods for easier request making
 - [x] SC2 Instance launching
 - [ ] Proxy between client and sc2
+- [ ] Split send and recieve?
+- [ ] Update async
 */
 
 use thiserror::Error;
