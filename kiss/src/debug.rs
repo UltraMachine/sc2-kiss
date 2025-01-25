@@ -1,10 +1,14 @@
+use super::*;
 use std::mem;
 
-use glam::{Vec2, Vec3};
-use sc2_core::{Client, Result};
+use sc2_core::{common::PlayerId, Client, Result};
 use sc2_prost::{debug_command::Command as Cmd, DebugDraw};
 
-pub use sc2_prost::DebugGameState as Cheat;
+pub use sc2_prost::{debug_set_unit_value::UnitValue, DebugGameState as Cheat};
+
+use ids::UnitKind;
+use linalg::{Vec2, Vec3};
+use unit::Tag;
 
 #[derive(Debug, Default)]
 pub struct GameDebug {
@@ -76,6 +80,29 @@ impl GameDebug {
 		};
 		self.draw().spheres.push(item);
 	}
+
+	pub fn spawn_units(&mut self, kind: UnitKind, count: u32, player: PlayerId, pos: Vec2) {
+		let unit = sc2_prost::DebugCreateUnit {
+			unit_type: kind.0,
+			owner: player.into(),
+			pos: Some(pos.into()),
+			quantity: count,
+		};
+		self.cmds.push(Cmd::CreateUnit(unit));
+	}
+	pub fn kill_units(&mut self, tags: impl IntoIterator<Item = Tag>) {
+		let tag = tags.into_iter().map(Into::into).collect();
+		let item = sc2_prost::DebugKillUnit { tag };
+		self.cmds.push(Cmd::KillUnit(item));
+	}
+	pub fn set_unit_value(&mut self, val: UnitValue, num: f32, tag: Tag) {
+		let item = sc2_prost::DebugSetUnitValue {
+			unit_value: val as i32,
+			value: num,
+			unit_tag: tag.into(),
+		};
+		self.cmds.push(Cmd::UnitValue(item))
+	}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -107,8 +134,8 @@ impl From<Color> for sc2_prost::Color {
 	fn from(c: Color) -> Self {
 		// sc2 defaults to white color
 		// so 0 is mapped to 255
-        // bits higher than 8 seem to be dropped
-        // so 256 is used to set 0
+		// bits higher than 8 seem to be dropped
+		// so 256 is used to set 0
 		fn cfix(c: u8) -> u32 {
 			match c {
 				0 => 256,
