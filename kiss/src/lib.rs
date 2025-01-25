@@ -21,7 +21,7 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 	- [x] Batch actions with same ability and target
 	- [ ] Action making methods for unit?
 - [ ] Map
-	- [ ] Easy access to map data at any position
+	- [x] Easy access to map data at any position
 	- [ ] Update map data to relevant
 	- [ ] Analyze map for more data
 - [ ] Structure placement
@@ -48,6 +48,9 @@ pub mod act;
 
 #[cfg(feature = "chat")]
 pub mod chat;
+
+#[cfg(feature = "map")]
+pub mod map;
 
 #[cfg(feature = "linalg")]
 pub mod linalg;

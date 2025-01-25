@@ -11,17 +11,19 @@ glam = { version = "0.29", optional = true }
 ordered-float = { version = "4.6", optional = true }
 clap = { version = "4.5", features = ["std", "derive"], default-features = false, optional = true }
 bpaf = { version = "0.9", features = ["derive"], optional = true }
+bitflags = { version = "2.8", optional = true }
 
 [dev-dependencies]
 clap = "4.5"
 camino = "1.1"
 
 [features]
-default = ["ids", "unit", "act", "chat", "linalg", "game-loop", "debug", "ai-arena"]
+default = ["ids", "unit", "act", "chat", "map", "linalg", "game-loop", "debug", "ai-arena"]
 ids = []
 unit = []
 act = []
 chat = []
+map = ["dep:bitflags", "linalg"]
 linalg = ["dep:glam", "sc2-prost/glam", "dep:ordered-float"]
 game-loop = []
 debug = []
