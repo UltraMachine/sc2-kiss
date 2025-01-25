@@ -148,6 +148,9 @@ impl Actions {
 	pub fn flush(&mut self, client: &mut Client) -> Result {
 		let mut buf = vec![];
 		self.flush_to_vec(&mut buf);
+		if buf.is_empty() {
+			return Ok(());
+		}
 		client.action(buf).map(|_| ())
 	}
 }
@@ -259,6 +262,9 @@ impl IActions {
 	pub fn flush(&mut self, client: &mut Client) -> Result {
 		let mut buf = vec![];
 		self.flush_to_vec(&mut buf);
+		if buf.is_empty() {
+			return Ok(());
+		}
 		client.action(buf).map(|_| ())
 	}
 }

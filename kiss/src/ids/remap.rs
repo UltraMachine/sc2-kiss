@@ -29,6 +29,9 @@ impl AbilityRemap {
 	}
 	/// Returns generalized version of input ability, or itself if ability is not in the map
 	pub fn remap(&self, id: Ability) -> Ability {
-		self.0.get(&id).copied().unwrap_or(id)
+		self.try_remap(id).unwrap_or(id)
+	}
+	pub fn try_remap(&self, id: Ability) -> Option<Ability> {
+		self.0.get(&id).copied()
 	}
 }

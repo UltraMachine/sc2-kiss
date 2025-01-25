@@ -91,7 +91,10 @@ impl Client {
 	let res = client.send(Req::Debug(req))?;
 	```
 	*/
-	pub fn debug(&mut self, cmds: Vec<sc2_prost::debug_command::Command>) -> Result<Res<()>> {
+	pub fn debug<I>(&mut self, cmds: I) -> Result<Res<()>>
+	where
+		I: IntoIterator<Item = sc2_prost::debug_command::Command>,
+	{
 		self.send(Req::Debug(sc2_prost::RequestDebug {
 			debug: cmds
 				.into_iter()

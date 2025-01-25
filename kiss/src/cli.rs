@@ -50,11 +50,11 @@ fn main() {
 #[cfg_attr(feature = "cli-bpaf", derive(bpaf::Bpaf))]
 #[cfg_attr(feature = "cli-clap", derive(clap::Args))]
 pub struct AiArena {
-	/// IP of SC2 API server to connect with client
 	#[cfg_attr(feature = "cli-bpaf", bpaf(long("LadderServer"), argument("IP")))]
 	#[cfg_attr(feature = "cli-clap", arg(long("LadderServer"), value_name("IP")))]
+	/// IP of SC2 API server to connect with client
 	pub ip: IpAddr,
-	/// Port of SC2 API server to connect with client
+
 	#[cfg_attr(
 		feature = "cli-bpaf",
 		bpaf(long("GamePort"), argument("NUMBER"), fallback(5000))
@@ -63,8 +63,9 @@ pub struct AiArena {
 		feature = "cli-clap",
 		arg(long("GamePort"), value_name("NUMBER"), default_value_t = 5000)
 	)]
+	/// Port of SC2 API server to connect with client
 	pub port: u16,
-	/// Port to use in `JoinGame` request
+
 	#[cfg_attr(
 		feature = "cli-bpaf",
 		bpaf(long("StartPort"), argument("NUMBER"), fallback(5000))
@@ -73,8 +74,9 @@ pub struct AiArena {
 		feature = "cli-clap",
 		arg(long("StartPort"), value_name("NUMBER"), default_value_t = 5000)
 	)]
+	/// Port to use in `JoinGame` request
 	pub join_port: u16,
-	/// Opponent id on ladder
+
 	#[cfg_attr(
 		feature = "cli-bpaf",
 		bpaf(long("OpponentId"), argument("STRING"), fallback(String::new()))
@@ -83,10 +85,12 @@ pub struct AiArena {
 		feature = "cli-clap",
 		arg(long("OpponentId"), value_name("STRING"), default_value_t)
 	)]
+	/// Opponent id on ladder
 	pub opponent_id: String,
-	/// Specifies if game will run in realtime more or step mode
+
 	#[cfg_attr(feature = "cli-bpaf", bpaf(long("RealTime")))]
 	#[cfg_attr(feature = "cli-clap", arg(long("RealTime")))]
+	/// Specifies if game will run in realtime more or step mode
 	pub realtime: bool,
 }
 #[cfg(feature = "ai-arena")]

@@ -136,7 +136,7 @@ impl<R> Res<R> {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PlayerId(pub u32);
 impl PlayerId {
