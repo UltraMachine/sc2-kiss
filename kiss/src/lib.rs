@@ -46,6 +46,9 @@ pub mod unit;
 #[cfg(all(feature = "act", feature = "unit"))]
 pub mod act;
 
+#[cfg(feature = "chat")]
+pub mod chat;
+
 #[cfg(feature = "linalg")]
 pub mod linalg;
 
