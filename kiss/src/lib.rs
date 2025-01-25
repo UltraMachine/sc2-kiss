@@ -43,7 +43,7 @@ pub mod ids;
 #[cfg(feature = "unit")]
 pub mod unit;
 
-#[cfg(all(feature = "act", feature = "unit"))]
+#[cfg(all(feature = "act"))]
 pub mod act;
 
 #[cfg(feature = "chat")]
