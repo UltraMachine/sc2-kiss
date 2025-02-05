@@ -14,7 +14,7 @@ Start by looking into [`Client`] documentation.
 - [ ] Proxy between client and sc2
 - [ ] Split send and recieve?
 - [ ] Update async
-- [ ] Auto locate game dir
+- [x] Auto locate game dir
 */
 
 use thiserror::Error;

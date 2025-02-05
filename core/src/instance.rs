@@ -1,7 +1,7 @@
-use std::io;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::path::PathBuf;
 use std::process::{Child, Command, Output};
+use std::{fs, io};
 
 use thiserror::Error;
 
@@ -9,7 +9,7 @@ use thiserror::Error;
 pub enum Error {
 	#[error("OS error: {0}")]
 	Os(#[from] io::Error),
-	#[error("Must provide path to game directory")]
+	#[error("Can't locate game directory. Please set it explicitly.")]
 	NoGameDir,
 	#[error("No game versions found")]
 	NoVersions,
@@ -58,8 +58,13 @@ pub struct Launcher {
 	pub verbose: bool,
 	/// Sets rendering lib on linux. It has no effect on windows.
 	pub rendering_lib: Option<RenderingLib>,
-	/// Overrides behaviour on drop. By default, spawned process will continue to run even after program ends.
+	/// Overrides behaviour after the instance is dropped.
+	///
+	/// Defaults to `Keep`
 	pub on_drop: OnDrop,
+	/// Configures SC2 window mode. Can be `Windowed` or `FullScreen`.
+	///
+	/// Defaults to `FullScreen`
 	pub display_mode: DisplayMode,
 }
 impl Default for Launcher {
@@ -78,44 +83,50 @@ impl Default for Launcher {
 	}
 }
 impl Launcher {
-	pub fn new(game_dir: PathBuf) -> Self {
-		Self {
-			game_dir,
-			..<_>::default()
-		}
-	}
-	pub fn with_addr(addr: SocketAddr, game_dir: PathBuf) -> Self {
-		Self {
-			addr,
-			game_dir,
-			..<_>::default()
-		}
-	}
-	pub fn keep_on_drop(&mut self) -> &mut Self {
-		self.on_drop = OnDrop::Keep;
-		self
-	}
-	pub fn wait_on_drop(&mut self) -> &mut Self {
-		self.on_drop = OnDrop::Wait;
-		self
-	}
-	pub fn kill_on_drop(&mut self) -> &mut Self {
-		self.on_drop = OnDrop::Kill;
-		self
-	}
-	pub fn windowed(&mut self) -> &mut Self {
-		self.display_mode = DisplayMode::Windowed;
-		self
-	}
-	pub fn fullscreen(&mut self) -> &mut Self {
-		self.display_mode = DisplayMode::FullScreen;
-		self
+	pub fn new() -> Self {
+		Self::default()
 	}
 	pub fn command(&self) -> Result<Command> {
-		if self.game_dir.as_os_str().is_empty() {
-			return Err(Error::NoGameDir);
+		#[cfg(windows)]
+		fn locate_game_dir() -> Option<PathBuf> {
+			let mut path = dirs::document_dir()?;
+			path.extend(["StarCraft II", "ExecuteInfo.txt"]);
+
+			let data = fs::read_to_string(path).ok()?;
+			let mut path: PathBuf = data.get(13..)?.into();
+			for _ in 0..3 {
+				path.pop();
+			}
+
+			fs::metadata(&path)
+				.map_or(false, |p| p.is_dir())
+				.then_some(path)
 		}
-		let mut cmd_path = self.game_dir.clone();
+		#[cfg(target_os = "linux")]
+		let locate_game_dir = || None;
+
+		fn default_game_dir() -> Option<PathBuf> {
+			#[cfg(windows)]
+			let path = "C:/Program Files (x86)/StarCraft II".into();
+			#[cfg(target_os = "linux")]
+			let path = {
+				let mut path = dirs::home_dir()?;
+				path.push("StarCraftII");
+				path
+			};
+
+			fs::metadata(&path)
+				.map_or(false, |p| p.is_dir())
+				.then_some(path)
+		}
+
+		let game_dir = (!self.game_dir.as_os_str().is_empty())
+			.then(|| self.game_dir.clone())
+			.or_else(locate_game_dir)
+			.or_else(default_game_dir)
+			.ok_or(Error::NoGameDir)?;
+
+		let mut cmd_path = game_dir.clone();
 		cmd_path.push("Versions");
 		if !self.version.as_os_str().is_empty() {
 			cmd_path.push(&self.version);
@@ -166,12 +177,12 @@ impl Launcher {
 		} else {
 			#[cfg(windows)]
 			let default_work_dir = {
-				let mut dir = self.game_dir.clone();
+				let mut dir = game_dir;
 				dir.push("Support64");
 				dir
 			};
 			#[cfg(target_os = "linux")]
-			let default_work_dir = &self.game_dir;
+			let default_work_dir = game_dir;
 			cmd.current_dir(default_work_dir);
 		}
 
@@ -205,17 +216,6 @@ pub enum OnDrop {
 	Keep,
 	Wait,
 	Kill,
-}
-impl Instance {
-	pub fn keep_on_drop(&mut self) {
-		self.on_drop = OnDrop::Keep;
-	}
-	pub fn wait_on_drop(&mut self) {
-		self.on_drop = OnDrop::Wait;
-	}
-	pub fn kill_on_drop(&mut self) {
-		self.on_drop = OnDrop::Kill;
-	}
 }
 impl Drop for Instance {
 	fn drop(&mut self) {
