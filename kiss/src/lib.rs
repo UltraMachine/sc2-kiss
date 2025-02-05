@@ -8,18 +8,21 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 </b></div>
 
 ## Todo:
+- [ ] Design a proper bot architecture (must be simple, easily scalable and customizable)
 - [x] Id generation
 - [x] Parse ladder CLI args
 - [ ] Add CLI parser for local play
+- [ ] Simplify running games
 - [x] Debug commands
 - [ ] Filter units and extract data
 - [ ] Work with positions, vectors, distances
 	- [x] linalg crate
-	- [ ] trait extension for iterators?
-- [ ] Easy actions
+	- [ ] functions for common situations (get closest unit, filter units in range, ...)
+- [ ] Unit actions
 	- [x] Action construction and storage
 	- [x] Batch actions with same ability and target
-	- [ ] Action making methods for unit?
+	- [ ] Return action results
+	- [ ] Support queuing multiple actions at once for a single unit
 - [ ] Map
 	- [x] Easy access to map data at any position
 	- [ ] Update map data to relevant
