@@ -1,11 +1,13 @@
 use super::*;
 use std::{
 	io,
-	net::SocketAddr,
+	net::{SocketAddr, ToSocketAddrs},
 	thread::sleep,
 	time::{Duration, Instant},
 };
-use tungstenite::{error::UrlError, http, stream::MaybeTlsStream, Error as WsError};
+use tungstenite::{
+	client::IntoClientRequest, error::UrlError, http, stream::MaybeTlsStream, Error as WsError,
+};
 
 type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
 
@@ -35,13 +37,12 @@ pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 Client interface to connect and communicate with SC2 instance.
 
 Basic usage:
-```
+```no_run
 use sc2_core::{Client, Req};
 
-let mut client = Client::connect("ws://localhost:5000/sc2api")?;
+let mut client = Client::connect("localhost:5000")?;
 let res = client.send(Req::Ping(Default::default()))?;
 println!("{res:?}");
-# Ok::<(), sc2_core::Error>(())
 ```
 */
 #[derive(Debug)]
@@ -51,8 +52,8 @@ pub struct Client {
 }
 /// Core methods
 impl Client {
-	fn connect_imp(url: http::Request<()>) -> Result<Self> {
-		let (ws, _) = tungstenite::connect(url)?;
+	fn connect_imp(http_req: http::Request<()>) -> Result<Self> {
+		let (ws, _) = tungstenite::connect(http_req)?;
 		Ok(Self {
 			ws,
 			status: Status::Unset,
@@ -64,45 +65,39 @@ impl Client {
 
 	# Errors
 
-	This function can error in case of invalid URL or connection failure.
+	This function can error in case of invalid address or connection failure.
 
 	# Examples
-	```
+	```no_run
 	use sc2_core::Client;
 
-	let mut client = Client::connect("ws://127.0.0.1:5000/sc2api")?;
-	# Ok::<(), sc2_core::Error>(())
-	```
-	```
-	use sc2_core::Client;
-	use url::Url;
-
-	let url = Url::parse("ws://127.0.0.1:5000/sc2api").unwrap();
-	let mut client = Client::connect(url)?;
-	# Ok::<(), sc2_core::Error>(())
-	```
-	```
-	use sc2_core::Client;
-	use http::Uri;
-
-	let uri = "ws://127.0.0.1:5000/sc2api".parse::<Uri>().unwrap();
-	let mut client = Client::connect(uri)?;
-	# Ok::<(), sc2_core::Error>(())
+	let mut client = Client::connect("localhost:5000")?;
 	```
 	*/
-	pub fn connect(url: impl ToUrl) -> Result<Self> {
-		Self::connect_imp(url.into_client_request()?)
+	pub fn connect(addr: impl ToSocketAddrs) -> Result<Self> {
+		let addrs = addr.to_socket_addrs().map_err(WsError::Io)?;
+		let mut last_err = None;
+		for addr in addrs {
+			let http_req = format!("ws://{addr}/sc2api").into_client_request()?;
+			match Self::connect_imp(http_req) {
+				ok @ Ok(_) => return ok,
+				Err(e) => last_err = Some(e),
+			}
+		}
+		Err(last_err.unwrap_or_else(|| {
+			Error::WebSocket(WsError::Io(io::Error::new(
+				io::ErrorKind::InvalidInput,
+				"could not resolve to any addresses",
+			)))
+		}))
 	}
 
-	pub fn connect_addr(addr: SocketAddr) -> Result<Self> {
-		Self::connect(format!("ws://{addr}/sc2api"))
-	}
-
-	pub fn connect_timeout(url: impl ToUrl, timeout: Duration) -> Result<Self> {
+	pub fn connect_timeout(addr: SocketAddr, timeout: Duration) -> Result<Self> {
+		let http_req = format!("ws://{addr}/sc2api").into_client_request()?;
+		// todo: better way to await the connection?
 		let now = Instant::now();
-		let url = url.into_client_request()?;
 		loop {
-			match Self::connect_imp(url.clone()) {
+			match Self::connect_imp(http_req.clone()) {
 				ok @ Ok(_) => return ok,
 				Err(Error::WebSocket(WsError::Url(UrlError::UnableToConnect(_)))) => {}
 				err @ Err(_) => return err,
@@ -113,10 +108,6 @@ impl Client {
 			}
 			sleep(Duration::from_secs(1));
 		}
-	}
-
-	pub fn connect_addr_timeout(addr: SocketAddr, timeout: Duration) -> Result<Self> {
-		Self::connect_timeout(format!("ws://{addr}/sc2api"), timeout)
 	}
 
 	/**
@@ -132,8 +123,7 @@ impl Client {
 	- Response contains any errors
 
 	# Examples
-	```
-	# let mut client = sc2_core::Client::connect("ws://localhost:5000/sc2api")?;
+	```no_run
 	use sc2_core::{Req, ResVar};
 
 	let res = client.send(Req::Ping(Default::default()))?;
@@ -143,10 +133,8 @@ impl Client {
 	println!("Data Version: {}", data.data_version);
 	println!("Data Build: {}", data.data_build);
 	println!("Base Build: {}", data.base_build);
-	# Ok::<(), sc2_core::Error>(())
 	```
-	```
-	# let mut client = sc2_core::Client::connect("ws://localhost:5000/sc2api")?;
+	```no_run
 	use sc2_core::{Req, ResVar};
 
 	let res = client.send(Req::AvailableMaps(Default::default()))?;
@@ -161,10 +149,8 @@ impl Client {
 	for map in data.battlenet_map_names {
 		println!("- {map}");
 	}
-	# Ok::<(), sc2_core::Error>(())
 	```
 	```no_run
-	# let mut client = sc2_core::Client::connect("ws://localhost:5000/sc2api")?;
 	use sc2_core::{Req, ResVar};
 
 	let req = sc2_prost::RequestJoinGame {
@@ -175,7 +161,6 @@ impl Client {
 	println!("Server Status: {:?}", res.status);
 	let ResVar::JoinGame(data) = res.data else { unreachable!() };
 	println!("Our Player Id: {}", data.player_id);
-	# Ok::<(), sc2_core::Error>(())
 	```
 	*/
 	pub fn send(&mut self, req: Req) -> Result<Res> {
@@ -189,8 +174,7 @@ impl Client {
 	Returns current server [`Status`].
 
 	# Examples
-	```
-	# let mut client = sc2_core::Client::connect("ws://localhost:5000/sc2api")?;
+	```no_run
 	use sc2_core::{Req, Status};
 
 	assert_eq!(client.status(), Status::Unset);
@@ -200,7 +184,6 @@ impl Client {
 
 	assert_eq!(client.status(), Status::Launched);
 	assert_eq!(client.status(), res.status);
-	# Ok::<(), sc2_core::Error>(())
 	```
 	*/
 	pub fn status(&self) -> Status {

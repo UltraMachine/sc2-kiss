@@ -8,10 +8,9 @@ fn main() {
 fn run() -> Result {
 	let addr = env::args()
 		.nth(1)
-		.map_or_else(|| "[::1]:5000".parse(), |s| s.parse())
-		.expect("Can't parse socket address");
+		.unwrap_or_else(|| "localhost:5000".into());
 
-	let mut client = Client::connect_addr(addr)?;
+	let mut client = Client::connect(addr)?;
 
 	let res = client.quit()?;
 	println!("Status: {:?}", res.status);

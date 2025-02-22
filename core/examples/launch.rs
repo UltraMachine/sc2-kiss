@@ -6,16 +6,13 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-	let mut args = env::args();
-	let game_dir = args.nth(1).map_or_else(Default::default, Into::into);
-	let addr = args
-		.next()
+	let addr = env::args()
+		.nth(1)
 		.map_or_else(|| "[::1]:5000".parse(), |s| s.parse())
 		.expect("Can't parse socket address");
 
 	let launcher = Launcher {
 		addr,
-		game_dir,
 		on_drop: Kill,
 		display_mode: Windowed,
 		..Default::default()

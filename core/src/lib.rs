@@ -41,4 +41,3 @@ pub mod common;
 use common::{internal::*, *};
 
 pub use sc2_prost::{self, request::Request as Req, response::Response as ResVar, Status};
-pub use tungstenite::client::IntoClientRequest as ToUrl;
