@@ -17,7 +17,7 @@ impl Client {
 	```
 	*/
 	pub async fn game_info(&mut self) -> Result<Res<sc2_prost::ResponseGameInfo>> {
-		unwrap_data!(self.send(Req::GameInfo(<_>::default())).await; GameInfo)
+		request!(self.GameInfo)
 	}
 	/**
 	Sends [`Observation`](Req::Observation) request to the server.
@@ -36,7 +36,7 @@ impl Client {
 		&mut self,
 		cfg: sc2_prost::RequestObservation,
 	) -> Result<Res<sc2_prost::ResponseObservation>> {
-		unwrap_data!(self.send(Req::Observation(cfg)).await; Observation)
+		request!(self.Observation(cfg))
 	}
 	/**
 	Sends [`Action`](Req::Action) request to the server.
@@ -54,16 +54,15 @@ impl Client {
 	*/
 	pub async fn action(
 		&mut self,
-		acts: Vec<sc2_prost::Action>,
+		actions: Vec<sc2_prost::Action>,
 	) -> Result<Res<Vec<sc2_prost::ActionResult>>> {
-		let req = Req::Action(sc2_prost::RequestAction { actions: acts });
-		let res = self.send(req).await;
-		Ok(unwrap_data!(res; Action result)?.map(|result| {
-			result
+		let req = sc2_prost::RequestAction { actions };
+		request!(self.Action(req)).map_res(|res| {
+			res.result
 				.into_iter()
 				.map(|num| num.try_into().unwrap_or_default())
 				.collect()
-		}))
+		})
 	}
 	/**
 	Sends [`ObsAction`](Req::ObsAction) request to the server.
@@ -80,14 +79,13 @@ impl Client {
 		&mut self,
 		acts: Vec<sc2_prost::observer_action::Action>,
 	) -> Result<Res<()>> {
-		self.send(Req::ObsAction(sc2_prost::RequestObserverAction {
+		let req = sc2_prost::RequestObserverAction {
 			actions: acts
 				.into_iter()
 				.map(|act| sc2_prost::ObserverAction { action: Some(act) })
 				.collect(),
-		}))
-		.await
-		.map(empty_res)
+		};
+		request!(self.ObsAction(req)).map(empty_res)
 	}
 	/**
 	Sends [`Step`](Req::Step) request to the server.
@@ -105,8 +103,8 @@ impl Client {
 	[`simulation_loop`]: sc2_prost::ResponseStep::simulation_loop
 	*/
 	pub async fn step(&mut self, count: u32) -> Result<Res<u32>> {
-		let res = self.send(Req::Step(sc2_prost::RequestStep { count })).await;
-		unwrap_data!(res; Step simulation_loop)
+		let req = sc2_prost::RequestStep { count };
+		request!(self.Step(req).simulation_loop)
 	}
 	/**
 	Sends [`Data`](Req::Data) request to the server.
@@ -128,7 +126,7 @@ impl Client {
 	```
 	*/
 	pub async fn data(&mut self, flags: DataFlags) -> Result<Res<sc2_prost::ResponseData>> {
-		unwrap_data!(self.send(flags.into()).await; Data)
+		request!(self.Data(flags.into()))
 	}
 	/**
 	Sends [`Query`](Req::Query) request to the server.
@@ -147,7 +145,7 @@ impl Client {
 		&mut self,
 		cfg: sc2_prost::RequestQuery,
 	) -> Result<Res<sc2_prost::ResponseQuery>> {
-		unwrap_data!(self.send(Req::Query(cfg)).await; Query)
+		request!(self.Query(cfg))
 	}
 	/**
 	Sends [`SaveReplay`](Req::SaveReplay) request to the server.
@@ -162,7 +160,7 @@ impl Client {
 	```
 	*/
 	pub async fn save_replay(&mut self) -> Result<Res<Vec<u8>>> {
-		unwrap_data!(self.send(Req::SaveReplay(<_>::default())).await; SaveReplay data)
+		request!(self.SaveReplay.data)
 	}
 	/**
 	Sends [`MapCommand`](Req::MapCommand) request to the server.
@@ -176,10 +174,7 @@ impl Client {
 	```
 	*/
 	pub async fn map_command(&mut self, cmd: String) -> Result<Res<()>> {
-		self.send(Req::MapCommand(sc2_prost::RequestMapCommand {
-			trigger_cmd: cmd,
-		}))
-		.await
-		.map(empty_res)
+		let req = sc2_prost::RequestMapCommand { trigger_cmd: cmd };
+		request!(self.MapCommand(req)).map(empty_res)
 	}
 }

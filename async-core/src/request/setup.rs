@@ -1,12 +1,13 @@
 use super::*;
 
 pub use sc2_core::request::setup::*;
+use sc2_prost::{RequestCreateGame, RequestJoinGame, RequestStartReplay};
 
-macro_rules! simple_methods {
+macro_rules! simple_requests {
 	($( $(#[$attr:meta])* $name:ident $Var:ident ),+ $(,)?) => {$(
 		$(#[$attr])*
 		pub async fn $name(&mut self) -> Result<Res<()>> {
-			self.send(Req::$Var(<_>::default())).await.map(empty_res)
+			self.request(Req::$Var(Default::default())).await.map(empty_res)
 		}
 	)+};
 }
@@ -48,8 +49,8 @@ impl Client {
 	let res = client.create_game(cfg).await?;
 	```
 	*/
-	pub async fn create_game(&mut self, cfg: GameCfg) -> Result<Res<()>> {
-		self.send(cfg.into()).await.map(empty_res)
+	pub async fn create_game(&mut self, cfg: impl Into<RequestCreateGame>) -> Result<Res<()>> {
+		request!(self.CreateGame(cfg.into())).map(empty_res)
 	}
 	/**
 	Sends [`JoinGame`](Req::JoinGame) request to the server.
@@ -99,8 +100,8 @@ impl Client {
 
 	[`player_id`]: sc2_prost::ResponseJoinGame::player_id
 	*/
-	pub async fn join_game(&mut self, cfg: JoinCfg) -> Result<Res<u32>> {
-		unwrap_data!(self.send(cfg.into()).await; JoinGame player_id)
+	pub async fn join_game(&mut self, cfg: impl Into<RequestJoinGame>) -> Result<Res<PlayerId>> {
+		request!(self.JoinGame(cfg.into()).player_id).map_res(Into::into)
 	}
 	/**
 	Sends [`RestartGame`](Req::RestartGame) request to the server.
@@ -118,8 +119,7 @@ impl Client {
 	[`need_hard_reset`]: sc2_prost::ResponseRestartGame::need_hard_reset
 	*/
 	pub async fn restart_game(&mut self) -> Result<Res<bool>> {
-		let res = self.send(Req::RestartGame(<_>::default())).await;
-		unwrap_data!(res; RestartGame need_hard_reset)
+		request!(self.RestartGame.need_hard_reset)
 	}
 	/**
 	Sends [`StartReplay`](Req::StartReplay) request to the server.
@@ -132,10 +132,10 @@ impl Client {
 	let res = client.send(Req::StartReplay(req)).await?;
 	```
 	*/
-	pub async fn start_replay(&mut self, cfg: ReplayCfg) -> Result<Res<()>> {
-		self.send(cfg.into()).await.map(empty_res)
+	pub async fn start_replay(&mut self, cfg: impl Into<RequestStartReplay>) -> Result<Res<()>> {
+		request!(self.StartReplay(cfg.into())).map(empty_res)
 	}
-	simple_methods! {
+	simple_requests! {
 		/**
 		Sends [`LeaveGame`](Req::LeaveGame) request to the server.
 

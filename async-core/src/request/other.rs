@@ -1,4 +1,5 @@
 use super::*;
+use sc2_prost::{RequestReplayInfo, RequestSaveMap};
 
 pub use sc2_core::request::other::*;
 
@@ -18,9 +19,9 @@ impl Client {
 	*/
 	pub async fn replay_info(
 		&mut self,
-		cfg: ReplayInfoCfg,
+		cfg: impl Into<RequestReplayInfo>,
 	) -> Result<Res<sc2_prost::ResponseReplayInfo>> {
-		unwrap_data!(self.send(cfg.into()).await; ReplayInfo)
+		request!(self.ReplayInfo(cfg.into()))
 	}
 	/**
 	Sends [`AvailableMaps`](Req::AvailableMaps) request to the server.
@@ -34,7 +35,7 @@ impl Client {
 	```
 	*/
 	pub async fn available_maps(&mut self) -> Result<Res<sc2_prost::ResponseAvailableMaps>> {
-		unwrap_data!(self.send(Req::AvailableMaps(<_>::default())).await; AvailableMaps)
+		request!(self.AvailableMaps)
 	}
 	/**
 	Sends [`SaveMap`](Req::SaveMap) request to the server.
@@ -47,8 +48,8 @@ impl Client {
 	let res = client.send(Req::SaveMap(req)).await?;
 	```
 	*/
-	pub async fn save_map(&mut self, cfg: sc2_prost::RequestSaveMap) -> Result<Res<()>> {
-		self.send(Req::SaveMap(cfg)).await.map(empty_res)
+	pub async fn save_map(&mut self, cfg: impl Into<RequestSaveMap>) -> Result<Res<()>> {
+		request!(self.SaveMap(cfg.into())).map(empty_res)
 	}
 	/**
 	Sends [`Ping`](Req::Ping) request to the server.
@@ -62,7 +63,7 @@ impl Client {
 	```
 	*/
 	pub async fn ping(&mut self) -> Result<Res<sc2_prost::ResponsePing>> {
-		unwrap_data!(self.send(Req::Ping(<_>::default())).await; Ping)
+		request!(self.Ping)
 	}
 	/**
 	Sends [`Debug`](Req::Debug) request to the server.
@@ -75,14 +76,16 @@ impl Client {
 	let res = client.send(Req::Debug(req)).await?;
 	```
 	*/
-	pub async fn debug(&mut self, cmds: Vec<sc2_prost::debug_command::Command>) -> Result<Res<()>> {
-		self.send(Req::Debug(sc2_prost::RequestDebug {
+	pub async fn debug<I>(&mut self, cmds: I) -> Result<Res<()>>
+	where
+		I: IntoIterator<Item = sc2_prost::debug_command::Command>,
+	{
+		let req = sc2_prost::RequestDebug {
 			debug: cmds
 				.into_iter()
 				.map(|cmd| sc2_prost::DebugCommand { command: Some(cmd) })
 				.collect(),
-		}))
-		.await
-		.map(empty_res)
+		};
+		request!(self.Debug(req)).map(empty_res)
 	}
 }

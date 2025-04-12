@@ -9,10 +9,13 @@ Start by looking into [`Client`] documentation.
 
 use sc2_core::common::{internal::*, *};
 
-pub mod client;
-#[cfg(feature = "request-methods")]
-pub mod request;
+pub use sc2_prost;
 
-#[doc(inline)]
-pub use client::Client;
-pub use sc2_core::*;
+pub use sc2_core::{Launcher, Req, ResVar, Status, common, instance};
+
+pub mod client;
+#[doc(no_inline)]
+pub use client::{Client, Error, Result};
+
+#[cfg(feature = "request-helpers")]
+pub mod request;

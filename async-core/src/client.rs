@@ -1,23 +1,26 @@
 use super::*;
 use futures_util::{SinkExt, StreamExt};
-use tokio_tungstenite::{tungstenite::Error as WsError, MaybeTlsStream, WebSocketStream};
+use std::{io, net::ToSocketAddrs};
+use tokio_tungstenite::{
+	MaybeTlsStream, WebSocketStream,
+	tungstenite::{Error as WsError, client::IntoClientRequest, http},
+};
 
 type WebSocket = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
+
+#[doc(no_inline)]
+pub use sc2_core::{Error, Result};
 
 /**
 Asynchronous client interface to connect and communicate with SC2 instance.
 
 Basic usage:
-```
-# tokio::runtime::Builder::new_current_thread().enable_all().build()
-# .unwrap().block_on(async {
+```no_run
 use sc2_async_core::{Client, Req};
 
-let mut client = Client::connect("ws://localhost:5000/sc2api").await?;
-let res = client.send(Req::Ping(Default::default())).await?;
+let mut client = Client::connect("localhost:5000").await?;
+let res = client.request(Req::Ping(Default::default())).await?;
 println!("{res:?}");
-# Ok::<(), sc2_async_core::Error>(())
-# }).unwrap()
 ```
 */
 #[derive(Debug)]
@@ -27,6 +30,14 @@ pub struct Client {
 }
 /// Core methods
 impl Client {
+	async fn connect_imp(http_req: http::Request<()>) -> Result<Self> {
+		let (ws, _) = tokio_tungstenite::connect_async(http_req).await?;
+		Ok(Self {
+			ws,
+			status: Status::Unset,
+		})
+	}
+
 	/**
 	Connects to the given SC2API WebSocket server and returns [`Client`].
 
@@ -36,44 +47,29 @@ impl Client {
 
 	# Examples
 
-	```
-	# tokio::runtime::Builder::new_current_thread().enable_all().build()
-	# .unwrap().block_on(async {
+	```no_run
 	use sc2_async_core::Client;
 
-	let mut client = Client::connect("ws://127.0.0.1:5000/sc2api").await?;
-	# Ok::<(), sc2_async_core::Error>(())
-	# }).unwrap()
-	```
-	```
-	# tokio::runtime::Builder::new_current_thread().enable_all().build()
-	# .unwrap().block_on(async {
-	use sc2_async_core::Client;
-	use url::Url;
-
-	let url = Url::parse("ws://127.0.0.1:5000/sc2api").unwrap();
-	let mut client = Client::connect(url).await?;
-	# Ok::<(), sc2_async_core::Error>(())
-	# }).unwrap()
-	```
-	```
-	# tokio::runtime::Builder::new_current_thread().enable_all().build()
-	# .unwrap().block_on(async {
-	use sc2_async_core::Client;
-	use http::Uri;
-
-	let uri = "ws://127.0.0.1:5000/sc2api".parse::<Uri>().unwrap();
-	let mut client = Client::connect(uri).await?;
-	# Ok::<(), sc2_async_core::Error>(())
-	# }).unwrap()
+	let mut client = Client::connect("localhost:5000").await?;
 	```
 	*/
-	pub async fn connect(url: impl ToUrl + Unpin) -> Result<Self> {
-		let (ws, _) = tokio_tungstenite::connect_async(url).await?;
-		Ok(Self {
-			ws,
-			status: Status::Unset,
-		})
+	pub async fn connect(addr: impl ToSocketAddrs) -> Result<Self> {
+		let addrs = addr.to_socket_addrs().map_err(WsError::Io)?;
+		let mut last_err = None;
+		for addr in addrs {
+			let http_req = format!("ws://{addr}/sc2api").into_client_request()?;
+
+			match Self::connect_imp(http_req).await {
+				ok @ Ok(_) => return ok,
+				Err(e) => last_err = Some(e),
+			}
+		}
+		Err(last_err.unwrap_or_else(|| {
+			Error::WebSocket(WsError::Io(io::Error::new(
+				io::ErrorKind::InvalidInput,
+				"could not resolve to any addresses",
+			)))
+		}))
 	}
 
 	/**
@@ -89,29 +85,21 @@ impl Client {
 	- Response contains any errors
 
 	# Examples
-	```
-	# tokio::runtime::Builder::new_current_thread().enable_all().build()
-	# .unwrap().block_on(async {
-	# let mut client = sc2_async_core::Client::connect("ws://localhost:5000/sc2api").await?;
+	```no_run
 	use sc2_async_core::{Req, ResVar};
 
-	let res = client.send(Req::Ping(Default::default())).await?;
+	let res = client.request(Req::Ping(Default::default())).await?;
 	println!("Server Status: {:?}", res.status);
 	let ResVar::Ping(data) = res.data else { unreachable!() };
 	println!("Game Version: {}", data.game_version);
 	println!("Data Version: {}", data.data_version);
 	println!("Data Build: {}", data.data_build);
 	println!("Base Build: {}", data.base_build);
-	# Ok::<(), sc2_async_core::Error>(())
-	# }).unwrap()
 	```
-	```
-	# tokio::runtime::Builder::new_current_thread().enable_all().build()
-	# .unwrap().block_on(async {
-	# let mut client = sc2_async_core::Client::connect("ws://localhost:5000/sc2api").await?;
+	```no_run
 	use sc2_async_core::{Req, ResVar};
 
-	let res = client.send(Req::AvailableMaps(Default::default())).await?;
+	let res = client.request(Req::AvailableMaps(Default::default())).await?;
 	println!("Server Status: {:?}", res.status);
 	let ResVar::AvailableMaps(data) = res.data else { unreachable!() };
 
@@ -123,58 +111,51 @@ impl Client {
 	for map in data.battlenet_map_names {
 		println!("- {map}");
 	}
-	# Ok::<(), sc2_async_core::Error>(())
-	# }).unwrap()
 	```
-	```
-	# tokio::runtime::Builder::new_current_thread().enable_all().build()
-	# .unwrap().block_on(async {
-	# let mut client = sc2_async_core::Client::connect("ws://localhost:5000/sc2api").await?;
+	```no_run
 	use sc2_async_core::{Req, ResVar};
 
 	let req = sc2_prost::RequestJoinGame {
 		// Set your options here
 		..Default::default()
 	};
-	let res = client.send(Req::JoinGame(req)).await?;
+	let res = client.request(Req::JoinGame(req)).await?;
 	println!("Server Status: {:?}", res.status);
 	let ResVar::JoinGame(data) = res.data else { unreachable!() };
 	println!("Our Player Id: {}", data.player_id);
-	# Ok::<(), sc2_async_core::Error>(())
-	# }).unwrap()
 	```
 	*/
-	pub async fn send(&mut self, req: Req) -> Result<Res> {
+	pub async fn request(&mut self, req: Req) -> Result<Res> {
 		let req_kind = req.kind();
-		self.ws.send(req_into_msg(req)).await?;
+		self.send(req).await?;
+		self.read(req_kind).await
+	}
 
+	pub async fn send(&mut self, req: Req) -> Result {
+		self.ws.send(req_into_msg(req)).await.map_err(Into::into)
+	}
+	pub async fn read(&mut self, expect_kind: Kind) -> Result<Res> {
 		let Some(msg) = self.ws.next().await else {
 			return Err(Error::WebSocket(WsError::AlreadyClosed));
 		};
-		let res = res_from_msg(msg?, req_kind)?;
-
-		check_res(res, req_kind, &mut self.status)
+		let res = res_from_msg(msg?, expect_kind)?;
+		check_res(res, expect_kind, &mut self.status)
 	}
 
 	/**
 	Returns current server [`Status`].
 
 	# Examples
-	```
-	# tokio::runtime::Builder::new_current_thread().enable_all().build()
-	# .unwrap().block_on(async {
-	# let mut client = sc2_async_core::Client::connect("ws://localhost:5000/sc2api").await?;
+	```no_run
 	use sc2_async_core::{Req, Status};
 
 	assert_eq!(client.status(), Status::Unset);
 
-	let res = client.send(Req::Ping(Default::default())).await?;
+	let res = client.request(Req::Ping(Default::default())).await?;
 	println!("Server Status: {:?}", res.status);
 
 	assert_eq!(client.status(), Status::Launched);
 	assert_eq!(client.status(), res.status);
-	# Ok::<(), sc2_async_core::Error>(())
-	# }).unwrap()
 	```
 	*/
 	pub fn status(&self) -> Status {
