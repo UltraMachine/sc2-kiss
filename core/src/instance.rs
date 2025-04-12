@@ -1,4 +1,4 @@
-use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+use std::net::{Ipv6Addr, SocketAddr};
 use std::path::PathBuf;
 use std::process::{Child, Command, Output};
 use std::{fs, io};
@@ -70,7 +70,7 @@ pub struct Launcher {
 impl Default for Launcher {
 	fn default() -> Self {
 		Self {
-			addr: SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 5000),
+			addr: (Ipv6Addr::LOCALHOST, 5000).into(),
 			game_dir: <_>::default(),
 			version: <_>::default(),
 			bin: <_>::default(),
@@ -99,7 +99,7 @@ impl Launcher {
 			}
 
 			fs::metadata(&path)
-				.map_or(false, |p| p.is_dir())
+				.is_ok_and(|p| p.is_dir())
 				.then_some(path)
 		}
 		#[cfg(target_os = "linux")]
@@ -116,7 +116,7 @@ impl Launcher {
 			};
 
 			fs::metadata(&path)
-				.map_or(false, |p| p.is_dir())
+				.is_ok_and(|p| p.is_dir())
 				.then_some(path)
 		}
 

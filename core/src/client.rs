@@ -6,7 +6,7 @@ use std::{
 	time::{Duration, Instant},
 };
 use tungstenite::{
-	client::IntoClientRequest, error::UrlError, http, stream::MaybeTlsStream, Error as WsError,
+	Error as WsError, client::IntoClientRequest, error::UrlError, http, stream::MaybeTlsStream,
 };
 
 type WebSocket = tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>;
@@ -41,7 +41,7 @@ Basic usage:
 use sc2_core::{Client, Req};
 
 let mut client = Client::connect("localhost:5000")?;
-let res = client.send(Req::Ping(Default::default()))?;
+let res = client.request(Req::Ping(Default::default()))?;
 println!("{res:?}");
 ```
 */
@@ -126,7 +126,7 @@ impl Client {
 	```no_run
 	use sc2_core::{Req, ResVar};
 
-	let res = client.send(Req::Ping(Default::default()))?;
+	let res = client.request(Req::Ping(Default::default()))?;
 	println!("Server Status: {:?}", res.status);
 	let ResVar::Ping(data) = res.data else { unreachable!() };
 	println!("Game Version: {}", data.game_version);
@@ -137,7 +137,7 @@ impl Client {
 	```no_run
 	use sc2_core::{Req, ResVar};
 
-	let res = client.send(Req::AvailableMaps(Default::default()))?;
+	let res = client.request(Req::AvailableMaps(Default::default()))?;
 	println!("Server Status: {:?}", res.status);
 	let ResVar::AvailableMaps(data) = res.data else { unreachable!() };
 
@@ -157,17 +157,24 @@ impl Client {
 		// Set your options here
 		..Default::default()
 	};
-	let res = client.send(Req::JoinGame(req))?;
+	let res = client.request(Req::JoinGame(req))?;
 	println!("Server Status: {:?}", res.status);
 	let ResVar::JoinGame(data) = res.data else { unreachable!() };
 	println!("Our Player Id: {}", data.player_id);
 	```
 	*/
-	pub fn send(&mut self, req: Req) -> Result<Res> {
+	pub fn request(&mut self, req: Req) -> Result<Res> {
 		let req_kind = req.kind();
-		self.ws.send(req_into_msg(req))?;
-		let res = res_from_msg(self.ws.read()?, req_kind)?;
-		check_res(res, req_kind, &mut self.status)
+		self.send(req)?;
+		self.read(req_kind)
+	}
+
+	pub fn send(&mut self, req: Req) -> Result {
+		self.ws.send(req_into_msg(req)).map_err(Into::into)
+	}
+	pub fn read(&mut self, expect_kind: Kind) -> Result<Res> {
+		let res = res_from_msg(self.ws.read()?, expect_kind)?;
+		check_res(res, expect_kind, &mut self.status)
 	}
 
 	/**
@@ -179,7 +186,7 @@ impl Client {
 
 	assert_eq!(client.status(), Status::Unset);
 
-	let res = client.send(Req::Ping(Default::default()))?;
+	let res = client.request(Req::Ping(Default::default()))?;
 	println!("Server Status: {:?}", res.status);
 
 	assert_eq!(client.status(), Status::Launched);

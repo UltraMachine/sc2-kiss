@@ -1,10 +1,12 @@
 use super::*;
+use sc2_prost::{Race, RequestCreateGame, RequestJoinGame, RequestStartReplay};
+use std::net::IpAddr;
 
-macro_rules! simple_methods {
+macro_rules! simple_requests {
 	($( $(#[$attr:meta])* $name:ident $Var:ident ),+ $(,)?) => {$(
 		$(#[$attr])*
 		pub fn $name(&mut self) -> Result<Res<()>> {
-			self.send(Req::$Var(<_>::default())).map(empty_res)
+			self.request(Req::$Var(Default::default())).map(empty_res)
 		}
 	)+};
 }
@@ -19,7 +21,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestCreateGame { /* Game config */ };
-	let res = client.send(Req::CreateGame(req))?;
+	let res = client.request(Req::CreateGame(req))?;
 	```
 
 	# Examples
@@ -46,8 +48,8 @@ impl Client {
 	let res = client.create_game(cfg)?;
 	```
 	*/
-	pub fn create_game(&mut self, cfg: GameCfg) -> Result<Res<()>> {
-		self.send(cfg.into()).map(empty_res)
+	pub fn create_game(&mut self, cfg: impl Into<RequestCreateGame>) -> Result<Res<()>> {
+		request!(self.CreateGame(cfg.into())).map(empty_res)
 	}
 	/**
 	Sends [`JoinGame`](Req::JoinGame) request to the server.
@@ -58,7 +60,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestJoinGame { /* Join config */ };
-	let res = client.send(Req::JoinGame(req))?;
+	let res = client.request(Req::JoinGame(req))?;
 	let ResVar::JoinGame(data) = res.data else { unreachable!() };
 	let player_id = data.player_id;
 	```
@@ -97,8 +99,8 @@ impl Client {
 
 	[`player_id`]: sc2_prost::ResponseJoinGame::player_id
 	*/
-	pub fn join_game(&mut self, cfg: JoinCfg) -> Result<Res<PlayerId>> {
-		unwrap_data!(self.send(cfg.into()); JoinGame player_id).map(|r| r.map(Into::into))
+	pub fn join_game(&mut self, cfg: impl Into<RequestJoinGame>) -> Result<Res<PlayerId>> {
+		request!(self.JoinGame(cfg.into()).player_id).map_res(Into::into)
 	}
 	/**
 	Sends [`RestartGame`](Req::RestartGame) request to the server.
@@ -108,7 +110,7 @@ impl Client {
 	```no_run
 	use sc2_core::Req;
 
-	let res = client.send(Req::RestartGame(Default::default()))?;
+	let res = client.request(Req::RestartGame(Default::default()))?;
 	let ResVar::RestartGame(data) = res.data else { unreachable!() };
 	let need_hard_reset = data.need_hard_reset;
 	```
@@ -116,7 +118,7 @@ impl Client {
 	[`need_hard_reset`]: sc2_prost::ResponseRestartGame::need_hard_reset
 	*/
 	pub fn restart_game(&mut self) -> Result<Res<bool>> {
-		unwrap_data!(self.send(Req::RestartGame(<_>::default())); RestartGame need_hard_reset)
+		request!(self.RestartGame.need_hard_reset)
 	}
 	/**
 	Sends [`StartReplay`](Req::StartReplay) request to the server.
@@ -126,13 +128,13 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestStartReplay { /* Replay config */ };
-	let res = client.send(Req::StartReplay(req))?;
+	let res = client.request(Req::StartReplay(req))?;
 	```
 	*/
-	pub fn start_replay(&mut self, cfg: ReplayCfg) -> Result<Res<()>> {
-		self.send(cfg.into()).map(empty_res)
+	pub fn start_replay(&mut self, cfg: impl Into<RequestStartReplay>) -> Result<Res<()>> {
+		request!(self.StartReplay(cfg.into())).map(empty_res)
 	}
-	simple_methods! {
+	simple_requests! {
 		/**
 		Sends [`LeaveGame`](Req::LeaveGame) request to the server.
 
@@ -140,7 +142,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::LeaveGame(Default::default()))?;
+		let res = client.request(Req::LeaveGame(Default::default()))?;
 		```
 		*/
 		leave_game LeaveGame,
@@ -151,7 +153,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::QuickSave(Default::default()))?;
+		let res = client.request(Req::QuickSave(Default::default()))?;
 		```
 		*/
 		quick_save QuickSave,
@@ -162,7 +164,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::QuickLoad(Default::default()))?;
+		let res = client.request(Req::QuickLoad(Default::default()))?;
 		```
 		*/
 		quick_load QuickLoad,
@@ -173,7 +175,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::Quit(Default::default()))?;
+		let res = client.request(Req::Quit(Default::default()))?;
 		```
 		*/
 		quit Quit,
@@ -184,7 +186,7 @@ impl Client {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameCfg {
 	/// Map for the game. Can be specified as a path or data bytes.
-	pub map: LoadMap,
+	pub map: Handle,
 	/// Game participants.
 	pub participants: Vec<create_game::Participant>,
 	/// If set to `true`, fog of war will be disabled for all players
@@ -195,19 +197,19 @@ pub struct GameCfg {
 	/// Otherwise game will run in step mode.
 	pub realtime: bool,
 }
-impl From<GameCfg> for Req {
-	fn from(cfg: GameCfg) -> Req {
+impl From<GameCfg> for RequestCreateGame {
+	fn from(cfg: GameCfg) -> Self {
 		use create_game::Participant::*;
 		use sc2_prost::PlayerType;
 
-		Req::CreateGame(sc2_prost::RequestCreateGame {
+		Self {
 			map: Some(sc2_prost::request_create_game::Map::LocalMap(
 				match cfg.map {
-					LoadMap::Path(path) => sc2_prost::LocalMap {
+					Handle::Path(path) => sc2_prost::LocalMap {
 						map_path: path.into(),
 						map_data: vec![],
 					},
-					LoadMap::Data(data) => sc2_prost::LocalMap {
+					Handle::Data(data) => sc2_prost::LocalMap {
 						map_path: "".into(),
 						map_data: data,
 					},
@@ -237,7 +239,7 @@ impl From<GameCfg> for Req {
 			disable_fog: cfg.disable_fog,
 			random_seed: cfg.random_seed,
 			realtime: cfg.realtime,
-		})
+		}
 	}
 }
 
@@ -273,12 +275,12 @@ pub struct JoinCfg {
 	pub name: String,
 	pub host: Option<IpAddr>,
 }
-impl From<JoinCfg> for Req {
-	fn from(cfg: JoinCfg) -> Req {
+impl From<JoinCfg> for RequestJoinGame {
+	fn from(cfg: JoinCfg) -> Self {
 		use join_game::JoinAs;
 		use sc2_prost::request_join_game::Participation::*;
 
-		Req::JoinGame(sc2_prost::RequestJoinGame {
+		Self {
 			participation: Some(match cfg.join_as {
 				JoinAs::Player(race) => Race(race as i32),
 				JoinAs::Observer(id) => ObservedPlayerId(id.into()),
@@ -289,7 +291,7 @@ impl From<JoinCfg> for Req {
 			shared_port: 0,
 			player_name: cfg.name,
 			host_ip: cfg.host.map_or_else(String::new, |ip| ip.to_string()),
-		})
+		}
 	}
 }
 
@@ -339,7 +341,7 @@ pub mod join_game {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct ReplayCfg {
-	pub replay: LoadMap,
+	pub replay: Handle,
 	pub map_data: Vec<u8>,
 	pub player: u32,
 	pub interface: Interface,
@@ -347,13 +349,13 @@ pub struct ReplayCfg {
 	pub realtime: bool,
 	pub record: bool,
 }
-impl From<ReplayCfg> for Req {
-	fn from(cfg: ReplayCfg) -> Req {
+impl From<ReplayCfg> for RequestStartReplay {
+	fn from(cfg: ReplayCfg) -> Self {
 		use sc2_prost::request_start_replay::Replay::*;
-		Req::StartReplay(sc2_prost::RequestStartReplay {
+		Self {
 			replay: Some(match cfg.replay {
-				LoadMap::Path(path) => ReplayPath(path.into()),
-				LoadMap::Data(data) => ReplayData(data),
+				Handle::Path(path) => ReplayPath(path.into()),
+				Handle::Data(data) => ReplayData(data),
 			}),
 			map_data: cfg.map_data,
 			observed_player_id: cfg.player,
@@ -361,6 +363,6 @@ impl From<ReplayCfg> for Req {
 			disable_fog: cfg.disable_fog,
 			realtime: cfg.realtime,
 			record_replay: cfg.record,
-		})
+		}
 	}
 }

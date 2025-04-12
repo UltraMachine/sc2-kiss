@@ -136,6 +136,15 @@ impl<R> Res<R> {
 	}
 }
 
+pub trait ResultResExt<R> {
+	fn map_res<T>(self, f: impl FnOnce(R) -> T) -> Result<Res<T>>;
+}
+impl<R> ResultResExt<R> for Result<Res<R>> {
+	fn map_res<T>(self, f: impl FnOnce(R) -> T) -> Result<Res<T>> {
+		self.map(|res| res.map(f))
+	}
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PlayerId(pub u32);
@@ -246,22 +255,7 @@ pub mod internal {
 		})
 	}
 
-	pub fn empty_res(res: Res) -> Res<()> {
+	pub fn empty_res<R>(res: Res<R>) -> Res<()> {
 		res.map(|_| ())
-	}
-
-	#[doc(hidden)]
-	#[macro_export]
-	macro_rules! unwrap_data {
-		($res:expr; $Var:ident $($field:ident)?) => {
-			$res.map(|res| {
-				res.map(|data| {
-					let ResVar::$Var(data) = data else {
-						unreachable!()
-					};
-					data $(.$field)?
-				})
-			})
-		};
 	}
 }

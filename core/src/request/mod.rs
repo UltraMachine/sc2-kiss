@@ -1,8 +1,20 @@
 use super::*;
 use bitflags::bitflags;
-use camino::Utf8PathBuf;
-use sc2_prost::Race;
-use std::net::IpAddr;
+
+pub use camino::Utf8PathBuf;
+
+macro_rules! request {
+	($client:ident . $Var:ident $(($req:expr))? $(.$field:ident)?) => {
+		$client.request(Req::$Var(request!(@ $($req)?))).map_res(|res| {
+			let ResVar::$Var(data) = res else {
+				unreachable!()
+			};
+			data $(.$field)?
+		})
+	};
+	(@) => { Default::default() };
+	(@ $req:expr) => { $req };
+}
 
 pub mod setup;
 pub use setup::*;
@@ -58,18 +70,18 @@ pub mod common {
 	}
 
 	#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-	pub enum LoadMap {
+	pub enum Handle {
 		Path(Utf8PathBuf),
 		Data(Vec<u8>),
 	}
-	impl Default for LoadMap {
+	impl Default for Handle {
 		fn default() -> Self {
-			LoadMap::Path(<_>::default())
+			Handle::Path(<_>::default())
 		}
 	}
-	impl<T: Into<Utf8PathBuf>> From<T> for LoadMap {
+	impl<T: Into<Utf8PathBuf>> From<T> for Handle {
 		fn from(path: T) -> Self {
-			LoadMap::Path(path.into())
+			Handle::Path(path.into())
 		}
 	}
 }

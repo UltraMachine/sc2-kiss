@@ -12,7 +12,7 @@ Start by looking into [`Client`] documentation.
 - [x] Optional methods for easier request making
 - [x] SC2 Instance launching
 - [ ] Proxy between client and sc2
-- [ ] Split send and recieve?
+- [x] Split send and recieve
 - [ ] Update async
 - [x] Auto locate game dir
 */
@@ -34,10 +34,10 @@ pub mod instance;
 #[cfg(feature = "instance")]
 pub use instance::Launcher;
 
-#[cfg(feature = "request-methods")]
+#[cfg(feature = "request-helpers")]
 pub mod request;
 
 pub mod common;
 use common::{internal::*, *};
 
-pub use sc2_prost::{self, request::Request as Req, response::Response as ResVar, Status};
+pub use sc2_prost::{self, Status, request::Request as Req, response::Response as ResVar};
