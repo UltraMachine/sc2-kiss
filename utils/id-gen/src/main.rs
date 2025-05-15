@@ -1,11 +1,11 @@
 // #![allow(dead_code, unused_imports, unused_variables)]
-use bpaf::{construct, long, Bpaf, Parser};
+use bpaf::Bpaf;
 use camino::Utf8PathBuf;
 use convert_case::{Case, Casing};
 use sc2_core::{
 	client::{Client, Result},
-	instance::Launcher,
-	request::{create_game::Participant, DataFlags, GameCfg},
+	instance::{Launcher, OnDrop::Kill},
+	request::{create_game::Participant, DataFlags, GameCfg, JoinCfg},
 };
 use std::{
 	collections::HashSet,
@@ -13,14 +13,14 @@ use std::{
 	io::{self, BufReader, BufWriter, Write},
 	net::{IpAddr, Ipv6Addr, SocketAddr},
 	path::PathBuf,
-	thread::sleep,
 	time::Duration,
 };
 
 const LOCALHOST_5000: SocketAddr = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 5000);
 
-fn default_out_dir() -> Result<PathBuf, std::convert::Infallible> {
-	Ok("kiss/src/ids".into())
+fn set_sc2map_ext(mut path: Utf8PathBuf) -> Utf8PathBuf {
+	path.set_extension("SC2Map");
+	path
 }
 
 #[derive(Debug, Clone, Bpaf)]
@@ -30,35 +30,22 @@ struct Cli {
 	input: Input,
 	#[bpaf(argument("PATH"))]
 	dump: Option<PathBuf>,
-	#[bpaf(argument("PATH"), fallback_with(default_out_dir))]
+	#[bpaf(argument("PATH"), fallback("kiss/src/ids".into()))]
 	out_dir: PathBuf,
 	no_gen: bool,
 }
 #[derive(Debug, Clone, Bpaf)]
 enum Input {
 	Map {
-		#[bpaf(argument("PATH"))]
+		#[bpaf(short, long, argument("PATH"), map(set_sc2map_ext))]
 		map: Utf8PathBuf,
 		#[bpaf(argument("IP:PORT"), fallback(LOCALHOST_5000))]
 		addr: SocketAddr,
-		#[bpaf(external)]
-		launch: Option<PathBuf>,
 	},
 	Data {
-		#[bpaf(argument("PATH"))]
+		#[bpaf(short, long, argument("PATH"))]
 		data: PathBuf,
 	},
-}
-
-fn launch() -> impl Parser<Option<PathBuf>> {
-	let flag = long("launch")
-		.req_flag(())
-		.map(|_| "/games/StarCraft II".into())
-		.hide();
-	let arg = long("launch")
-		.argument("GAME_DIR")
-		.help("Launches SC2 Instance");
-	construct!([arg, flag]).optional()
 }
 
 fn main() {
@@ -69,29 +56,23 @@ fn main() {
 fn gen(opts: Cli) -> Result {
 	// load data
 	let data = match opts.input {
-		Input::Map { map, addr, launch } => {
-			let _instance = launch.map(|game_dir| {
-				Launcher {
-					game_dir,
-					addr,
-					..<_>::default()
-				}
-				.kill_on_drop()
-				.spawn()
-				.expect("Can't launch SC2")
-			});
+		Input::Map { map, addr } => {
+			let _instance = Launcher {
+				addr,
+				on_drop: Kill,
+				..<_>::default()
+			}
+			.spawn()
+			.expect("Can't launch SC2");
 
-			// give some time for SC2 to start
-			sleep(Duration::from_secs(3));
-
-			let mut client = Client::connect_addr(addr)?;
+			let mut client = Client::connect_timeout(addr, Duration::from_secs(5))?;
 
 			client.create_game(GameCfg {
 				map: map.into(),
 				participants: vec![Participant::Player],
 				..<_>::default()
 			})?;
-			client.join_game(<_>::default())?;
+			client.join_game(JoinCfg::default())?;
 
 			client.data(DataFlags::all())?.data
 		}
@@ -206,7 +187,7 @@ impl {0} {{
 	)?;
 	let mut ids_copy = vec![];
 	for (name, id) in ids {
-		if name.chars().next().map_or(true, |c| c.is_ascii_digit())
+		if name.chars().next().is_none_or(|c| c.is_ascii_digit())
 			|| name.starts_with("Dummy")
 			|| name.contains("Bridge")
 			|| name.contains("Door")
