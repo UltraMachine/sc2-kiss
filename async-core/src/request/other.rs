@@ -13,7 +13,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestReplayInfo { /* Options */ };
-	let res = client.send(Req::ReplayInfo(req)).await?;
+	let res = client.request(Req::ReplayInfo(req)).await?;
 	let ResVar::ReplayInfo(data) = res.data else { unreachable!() };
 	```
 	*/
@@ -30,7 +30,7 @@ impl Client {
 	```no_run
 	use sc2_core::Req;
 
-	let res = client.send(Req::AvailableMaps(Default::default())).await?;
+	let res = client.request(Req::AvailableMaps(Default::default())).await?;
 	let ResVar::AvailableMaps(data) = res.data else { unreachable!() };
 	```
 	*/
@@ -45,7 +45,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestSaveMap { /* Save config */ };
-	let res = client.send(Req::SaveMap(req)).await?;
+	let res = client.request(Req::SaveMap(req)).await?;
 	```
 	*/
 	pub async fn save_map(&mut self, cfg: impl Into<RequestSaveMap>) -> Result<Res<()>> {
@@ -58,7 +58,7 @@ impl Client {
 	```no_run
 	use sc2_core::Req;
 
-	let res = client.send(Req::Ping(Default::default())).await?;
+	let res = client.request(Req::Ping(Default::default())).await?;
 	let ResVar::Ping(data) = res.data else { unreachable!() };
 	```
 	*/
@@ -73,7 +73,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestDebug { debug: vec![/* Debug commands */] };
-	let res = client.send(Req::Debug(req)).await?;
+	let res = client.request(Req::Debug(req)).await?;
 	```
 	*/
 	pub async fn debug<I>(&mut self, cmds: I) -> Result<Res<()>>

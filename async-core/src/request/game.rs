@@ -12,7 +12,7 @@ impl Client {
 	```no_run
 	use sc2_core::Req;
 
-	let res = client.send(Req::GameInfo(Default::default())).await?;
+	let res = client.request(Req::GameInfo(Default::default())).await?;
 	let ResVar::GameInfo(data) = res.data else { unreachable!() };
 	```
 	*/
@@ -28,7 +28,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestObservation { /* Observation options */ };
-	let res = client.send(Req::Observation(req)).await?;
+	let res = client.request(Req::Observation(req)).await?;
 	let ResVar::Observation(data) = res.data else { unreachable!() };
 	```
 	*/
@@ -47,7 +47,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestAction { actions: vec![] };
-	let res = client.send(Req::Action(req)).await?;
+	let res = client.request(Req::Action(req)).await?;
 	let ResVar::Action(data) = res.data else { unreachable!() };
 	let action_results = data.result;
 	```
@@ -72,7 +72,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestObserverAction { actions: vec![] };
-	let res = client.send(Req::ObsAction(req)).await?;
+	let res = client.request(Req::ObsAction(req)).await?;
 	```
 	*/
 	pub async fn obs_action(
@@ -95,7 +95,7 @@ impl Client {
 	```no_run
 	use sc2_core::Req;
 
-	let res = client.send(Req::Step(sc2_prost::RequestStep { count: 2 })).await?;
+	let res = client.request(Req::Step(sc2_prost::RequestStep { count: 2 })).await?;
 	let ResVar::Step(data) = res.data else { unreachable!() };
 	let simulation_loop = data.simulation_loop;
 	```
@@ -115,7 +115,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestData { /* Data options */ };
-	let res = client.send(Req::Data(req)).await?;
+	let res = client.request(Req::Data(req)).await?;
 	let ResVar::Data(data) = res.data else { unreachable!() };
 	```
 	# Examples
@@ -137,7 +137,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestQuery { /* Query fields */ };
-	let res = client.send(Req::Query(req)).await?;
+	let res = client.request(Req::Query(req)).await?;
 	let ResVar::Query(data) = res.data else { unreachable!() };
 	```
 	*/
@@ -155,7 +155,7 @@ impl Client {
 	```no_run
 	use sc2_core::Req;
 
-	let res = client.send(Req::SaveReplay(Default::default())).await?;
+	let res = client.request(Req::SaveReplay(Default::default())).await?;
 	let ResVar::SaveReplay(data) = res.data else { unreachable!() };
 	```
 	*/
@@ -170,7 +170,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestMapCommand { trigger_cmd: "Some map command".into() };
-	let res = client.send(Req::MapCommand(req)).await?;
+	let res = client.request(Req::MapCommand(req)).await?;
 	```
 	*/
 	pub async fn map_command(&mut self, cmd: String) -> Result<Res<()>> {

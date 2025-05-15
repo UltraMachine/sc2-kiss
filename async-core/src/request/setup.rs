@@ -22,7 +22,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestCreateGame { /* Game config */ };
-	let res = client.send(Req::CreateGame(req)).await?;
+	let res = client.request(Req::CreateGame(req)).await?;
 	```
 
 	# Examples
@@ -61,7 +61,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestJoinGame { /* Join config */ };
-	let res = client.send(Req::JoinGame(req)).await?;
+	let res = client.request(Req::JoinGame(req)).await?;
 	let ResVar::JoinGame(data) = res.data else { unreachable!() };
 	let player_id = data.player_id;
 	```
@@ -111,7 +111,7 @@ impl Client {
 	```no_run
 	use sc2_core::Req;
 
-	let res = client.send(Req::RestartGame(Default::default())).await?;
+	let res = client.request(Req::RestartGame(Default::default())).await?;
 	let ResVar::RestartGame(data) = res.data else { unreachable!() };
 	let need_hard_reset = data.need_hard_reset;
 	```
@@ -129,7 +129,7 @@ impl Client {
 	use sc2_core::Req;
 
 	let req = sc2_prost::RequestStartReplay { /* Replay config */ };
-	let res = client.send(Req::StartReplay(req)).await?;
+	let res = client.request(Req::StartReplay(req)).await?;
 	```
 	*/
 	pub async fn start_replay(&mut self, cfg: impl Into<RequestStartReplay>) -> Result<Res<()>> {
@@ -143,7 +143,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::LeaveGame(Default::default())).await?;
+		let res = client.request(Req::LeaveGame(Default::default())).await?;
 		```
 		*/
 		leave_game LeaveGame,
@@ -154,7 +154,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::QuickSave(Default::default())).await?;
+		let res = client.request(Req::QuickSave(Default::default())).await?;
 		```
 		*/
 		quick_save QuickSave,
@@ -165,7 +165,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::QuickLoad(Default::default())).await?;
+		let res = client.request(Req::QuickLoad(Default::default())).await?;
 		```
 		*/
 		quick_load QuickLoad,
@@ -176,7 +176,7 @@ impl Client {
 		```no_run
 		use sc2_core::Req;
 
-		let res = client.send(Req::Quit(Default::default())).await?;
+		let res = client.request(Req::Quit(Default::default())).await?;
 		```
 		*/
 		quit Quit,
