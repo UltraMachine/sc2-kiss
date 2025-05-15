@@ -30,22 +30,22 @@ pub mod common {
 
 	#[derive(Debug, Default, Clone, PartialEq)]
 	pub struct Interface {
-		pub flags: Flags,
+		pub flags: InterfaceFlags,
 		pub feature: Option<sc2_prost::SpatialCameraSetup>,
 		pub render: Option<sc2_prost::SpatialCameraSetup>,
 	}
 	impl From<Interface> for sc2_prost::InterfaceOptions {
 		fn from(i: Interface) -> Self {
 			Self {
-				raw: i.flags.contains(Flags::RAW),
-				score: i.flags.contains(Flags::SCORE),
+				raw: i.flags.contains(InterfaceFlags::RAW),
+				score: i.flags.contains(InterfaceFlags::SCORE),
 				feature_layer: i.feature,
 				render: i.render,
-				show_cloaked: i.flags.contains(Flags::CLOAKED),
-				show_burrowed_shadows: i.flags.contains(Flags::BURROWED),
-				show_placeholders: i.flags.contains(Flags::PLACEHOLDERS),
-				raw_affects_selection: i.flags.contains(Flags::AFFECT_SELECTION),
-				raw_crop_to_playable_area: i.flags.contains(Flags::CROP_RAW),
+				show_cloaked: i.flags.contains(InterfaceFlags::CLOAKED),
+				show_burrowed_shadows: i.flags.contains(InterfaceFlags::BURROWED),
+				show_placeholders: i.flags.contains(InterfaceFlags::PLACEHOLDERS),
+				raw_affects_selection: i.flags.contains(InterfaceFlags::AFFECT_SELECTION),
+				raw_crop_to_playable_area: i.flags.contains(InterfaceFlags::CROP_RAW),
 			}
 		}
 	}
@@ -53,7 +53,7 @@ pub mod common {
 	bitflags! {
 		#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 		#[repr(transparent)]
-		pub struct Flags: u8 {
+		pub struct InterfaceFlags: u8 {
 			const RAW              = 1;
 			const SCORE            = 1 << 1;
 			const CLOAKED          = 1 << 2;
@@ -63,7 +63,7 @@ pub mod common {
 			const CROP_RAW         = 1 << 6;
 		}
 	}
-	impl Default for Flags {
+	impl Default for InterfaceFlags {
 		fn default() -> Self {
 			Self::RAW | Self::CLOAKED | Self::BURROWED | Self::AFFECT_SELECTION | Self::CROP_RAW
 		}
