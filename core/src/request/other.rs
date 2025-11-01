@@ -1,107 +1,169 @@
 use super::*;
-use sc2_prost::{RequestReplayInfo, RequestSaveMap};
+use sc2_prost::{RequestDebug, request_replay_info::Replay};
+
+pub fn replay_info() -> ReplayInfo {
+	Default::default()
+}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct ReplayInfoCfg {
-	pub replay: Handle,
-	pub download_data: bool,
+pub struct ReplayInfo(sc2_prost::RequestReplayInfo);
+impl ReplayInfo {
+	pub fn replay(mut self, path: Utf8PathBuf) -> Self {
+		self.0.replay = Some(Replay::ReplayPath(path.into()));
+		self
+	}
+	pub fn replay_data(mut self, data: Vec<u8>) -> Self {
+		self.0.replay = Some(Replay::ReplayData(data));
+		self
+	}
+
+	pub fn download_data(mut self, value: bool) -> Self {
+		self.0.download_data = value;
+		self
+	}
 }
-impl From<ReplayInfoCfg> for RequestReplayInfo {
-	fn from(cfg: ReplayInfoCfg) -> Self {
-		use sc2_prost::request_replay_info::Replay::*;
+impl From<ReplayInfo> for Request {
+	fn from(r: ReplayInfo) -> Self {
 		Self {
-			replay: Some(match cfg.replay {
-				Handle::Path(path) => ReplayPath(path.into()),
-				Handle::Data(data) => ReplayData(data),
-			}),
-			download_data: cfg.download_data,
+			id: 0,
+			request: Some(RequestVar::ReplayInfo(r.0)),
 		}
 	}
 }
+impl MapResponse for ReplayInfo {
+	type Data = sc2_prost::ResponseReplayInfo;
 
-/// Other requests
-impl Client {
-	/**
-	Sends [`ReplayInfo`](Req::ReplayInfo) request to the server.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestReplayInfo { /* Options */ };
-	let res = client.request(Req::ReplayInfo(req))?;
-	let ResVar::ReplayInfo(data) = res.data else { unreachable!() };
-	```
-	*/
-	pub fn replay_info(
-		&mut self,
-		cfg: impl Into<RequestReplayInfo>,
-	) -> Result<Res<sc2_prost::ResponseReplayInfo>> {
-		request!(self.ReplayInfo(cfg.into()))
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::ReplayInfo(res) => Ok(res),
+			_ => Err(BadResError(Kind::ReplayInfo, res.kind()).into()),
+		}
 	}
-	/**
-	Sends [`AvailableMaps`](Req::AvailableMaps) request to the server.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let res = client.request(Req::AvailableMaps(Default::default()))?;
-	let ResVar::AvailableMaps(data) = res.data else { unreachable!() };
-	```
-	*/
-	pub fn available_maps(&mut self) -> Result<Res<sc2_prost::ResponseAvailableMaps>> {
-		request!(self.AvailableMaps)
+}
+impl KindOf for ReplayInfo {
+	fn kind(&self) -> Kind {
+		Kind::ReplayInfo
 	}
-	/**
-	Sends [`SaveMap`](Req::SaveMap) request to the server.
+}
 
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestSaveMap { /* Save config */ };
-	let res = client.request(Req::SaveMap(req))?;
-	```
-	*/
-	pub fn save_map(&mut self, cfg: impl Into<RequestSaveMap>) -> Result<Res<()>> {
-		request!(self.SaveMap(cfg.into())).map(empty_res)
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AvailableMaps;
+impl From<AvailableMaps> for Request {
+	fn from(_: AvailableMaps) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::AvailableMaps(Default::default())),
+		}
 	}
-	/**
-	Sends [`Ping`](Req::Ping) request to the server.
+}
+impl MapResponse for AvailableMaps {
+	type Data = sc2_prost::ResponseAvailableMaps;
 
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let res = client.request(Req::Ping(Default::default()))?;
-	let ResVar::Ping(data) = res.data else { unreachable!() };
-	```
-	*/
-	pub fn ping(&mut self) -> Result<Res<sc2_prost::ResponsePing>> {
-		request!(self.Ping)
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::AvailableMaps(res) => Ok(res),
+			_ => Err(BadResError(Kind::AvailableMaps, res.kind()).into()),
+		}
 	}
-	/**
-	Sends [`Debug`](Req::Debug) request to the server.
+}
+impl KindOf for AvailableMaps {
+	fn kind(&self) -> Kind {
+		Kind::AvailableMaps
+	}
+}
 
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
+pub fn save_map() -> SaveMap {
+	Default::default()
+}
 
-	let req = sc2_prost::RequestDebug { debug: vec![/* Debug commands */] };
-	let res = client.request(Req::Debug(req))?;
-	```
-	*/
-	pub fn debug<I>(&mut self, cmds: I) -> Result<Res<()>>
-	where
-		I: IntoIterator<Item = sc2_prost::debug_command::Command>,
-	{
-		let req = sc2_prost::RequestDebug {
-			debug: cmds
-				.into_iter()
-				.map(|cmd| sc2_prost::DebugCommand { command: Some(cmd) })
-				.collect(),
-		};
-		request!(self.Debug(req)).map(empty_res)
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct SaveMap(sc2_prost::RequestSaveMap);
+impl SaveMap {
+	pub fn path(mut self, path: Utf8PathBuf) -> Self {
+		self.0.map_path = path.into();
+		self
+	}
+	pub fn data(mut self, data: Vec<u8>) -> Self {
+		self.0.map_data = data;
+		self
+	}
+}
+impl From<SaveMap> for Request {
+	fn from(r: SaveMap) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::SaveMap(r.0)),
+		}
+	}
+}
+impl MapResponse for SaveMap {
+	type Data = sc2_prost::ResponseSaveMap;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::SaveMap(res) => Ok(res),
+			_ => Err(BadResError(Kind::SaveMap, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for SaveMap {
+	fn kind(&self) -> Kind {
+		Kind::SaveMap
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Ping;
+impl From<Ping> for Request {
+	fn from(_: Ping) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Ping(sc2_prost::RequestPing {})),
+		}
+	}
+}
+impl MapResponse for Ping {
+	type Data = sc2_prost::ResponsePing;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Ping(res) => Ok(res),
+			_ => Err(BadResError(Kind::Ping, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Ping {
+	fn kind(&self) -> Kind {
+		Kind::Ping
+	}
+}
+
+pub fn debug(debug: Vec<sc2_prost::DebugCommand>) -> Debug {
+	Debug(RequestDebug { debug })
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct Debug(RequestDebug);
+impl From<Debug> for Request {
+	fn from(r: Debug) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Debug(r.0)),
+		}
+	}
+}
+impl MapResponse for Debug {
+	type Data = ();
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Debug(_) => Ok(()),
+			_ => Err(BadResError(Kind::Debug, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Debug {
+	fn kind(&self) -> Kind {
+		Kind::Debug
 	}
 }

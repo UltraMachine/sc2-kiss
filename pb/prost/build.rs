@@ -10,6 +10,7 @@ fn main() {
 	let serde = "#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]";
 	let serde_with = |path| format!("#[cfg_attr(feature = \"serde\", serde(with = \"{path}\"))]");
 	prost_build::Config::new()
+		.message_attribute("RequestCreateGame", "#[derive(Eq, Hash)]")
 		.message_attribute("ResponseData", serde)
 		.message_attribute("AbilityData", serde)
 		.enum_attribute("AbilityData.Target", serde)

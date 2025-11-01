@@ -1,5 +1,4 @@
 use super::*;
-use prost::Message;
 use std::fmt;
 
 /// Enum to identify kind of request/response
@@ -64,84 +63,110 @@ macro_rules! match_kind {
 	};
 }
 
-impl KindOf for Req {
+impl KindOf for RequestVar {
 	fn kind(&self) -> Kind {
-		use Req::*;
+		use RequestVar::*;
 		match_kind!(self)
 	}
 }
-impl KindOf for ResVar {
+impl KindOf for ResponseVar {
 	fn kind(&self) -> Kind {
-		use ResVar::*;
+		use ResponseVar::*;
 		match_kind!(self)
 	}
 }
-impl KindOf for Res {
+impl<R: KindOf> KindOf for Res<R> {
 	fn kind(&self) -> Kind {
 		self.data.kind()
 	}
 }
-impl KindOf for sc2_prost::Request {
+impl KindOf for Request {
 	fn kind(&self) -> Kind {
 		self.request.as_ref().map_or(Kind::None, KindOf::kind)
 	}
 }
-impl KindOf for sc2_prost::Response {
+impl KindOf for Response {
 	fn kind(&self) -> Kind {
 		self.response.as_ref().map_or(Kind::None, KindOf::kind)
 	}
 }
 
-/// Response type returned for all requests
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Res<R = ResVar> {
-	pub data: R,
-	pub status: Status,
-	pub warns: Vec<String>,
-}
-impl TryFrom<sc2_prost::Response> for Res {
-	type Error = Sc2Error;
-	fn try_from(res: sc2_prost::Response) -> Result<Res, Sc2Error> {
-		let status = res.status();
-		let Some(data) = res.response else {
-			return Err(Sc2Error {
-				kind: Kind::None,
-				err: "Empty Response".to_owned(),
-				desc: res.error.join("\n"),
-			});
-		};
-		Ok(Res {
-			data,
-			status,
-			warns: res.error,
-		})
-	}
-}
 /// Describes some error returned in the response
 #[derive(Debug, Error)]
-#[error("Sc2 {kind:?} Error: `{err}`\n{desc}")]
+#[error("SC2 {kind:?} Error: `{err}`\n{desc}")]
 pub struct Sc2Error {
 	kind: Kind,
 	err: String,
 	desc: String,
 }
 
-impl<R> Res<R> {
-	pub fn map<T>(self, data: impl FnOnce(R) -> T) -> Res<T> {
-		Res {
-			data: data(self.data),
-			status: self.status,
-			warns: self.warns,
+/// Response type returned for all requests
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Res<R = ResponseVar> {
+	pub data: R,
+	pub status: Status,
+	pub warnings: Vec<String>,
+	pub id: u32,
+}
+impl TryFrom<Response> for Res {
+	type Error = Sc2Error;
+	fn try_from(res: Response) -> Result<Res, Sc2Error> {
+		let status = res.status();
+		let Some(data) = res.response else {
+			return Err(Sc2Error {
+				kind: Kind::None,
+				err: "Empty Response".into(),
+				desc: res.error.join("\n"),
+			});
+		};
+		Ok(Res {
+			data,
+			status,
+			warnings: res.error,
+			id: res.id,
+		})
+	}
+}
+impl From<Res> for Response {
+	fn from(r: Res) -> Self {
+		Self {
+			response: Some(r.data),
+			id: r.id,
+			error: r.warnings,
+			status: r.status as i32,
 		}
 	}
 }
 
-pub trait ResultResExt<R> {
-	fn map_res<T>(self, f: impl FnOnce(R) -> T) -> Result<Res<T>>;
+impl<R> Res<R> {
+	pub fn map<T>(self, f: impl FnOnce(R) -> T) -> Res<T> {
+		Res {
+			data: f(self.data),
+			status: self.status,
+			warnings: self.warnings,
+			id: self.id,
+		}
+	}
+	pub fn try_map<T, E>(self, f: impl FnOnce(R) -> Result<T, E>) -> Result<Res<T>, E> {
+		Ok(Res {
+			data: f(self.data)?,
+			status: self.status,
+			warnings: self.warnings,
+			id: self.id,
+		})
+	}
 }
-impl<R> ResultResExt<R> for Result<Res<R>> {
-	fn map_res<T>(self, f: impl FnOnce(R) -> T) -> Result<Res<T>> {
+
+pub trait ResultResExt<R, E> {
+	fn map_res<T>(self, f: impl FnOnce(R) -> T) -> Result<Res<T>, E>;
+	fn try_map_res<T>(self, f: impl FnOnce(R) -> Result<T, E>) -> Result<Res<T>, E>;
+}
+impl<R, E> ResultResExt<R, E> for Result<Res<R>, E> {
+	fn map_res<T>(self, f: impl FnOnce(R) -> T) -> Result<Res<T>, E> {
 		self.map(|res| res.map(f))
+	}
+	fn try_map_res<T>(self, f: impl FnOnce(R) -> Result<T, E>) -> Result<Res<T>, E> {
+		self.and_then(|res| res.try_map(f))
 	}
 }
 
@@ -153,7 +178,10 @@ impl PlayerId {
 }
 impl fmt::Display for PlayerId {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.0)
+		match self.0 {
+			0 => write!(f, "Neutral"),
+			i => write!(f, "Player {i}"),
+		}
 	}
 }
 impl From<u32> for PlayerId {
@@ -167,95 +195,84 @@ impl From<PlayerId> for u32 {
 	}
 }
 
-#[doc(hidden)]
-pub mod internal {
-	use super::*;
+#[derive(Debug, Error)]
+#[error("Bad response: `{0:?}`, expected `{1:?}`")]
+pub struct BadResError(pub Kind, pub Kind);
 
-	pub fn check_res(res: Res, req_kind: Kind, old_status: &mut Status) -> Result<Res> {
-		let kind = res.kind();
-		if kind != req_kind {
-			return Err(Error::BadRes(kind, req_kind));
-		}
-		check_errors(&res)?;
-		check_status(kind, res.status, *old_status)?;
-		*old_status = res.status;
+pub trait MapResponse {
+	type Data;
+	fn map_res(res: ResponseVar) -> Result<Self::Data>;
+}
+impl MapResponse for Request {
+	type Data = ResponseVar;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		Ok(res)
 	}
+}
 
-	fn check_status(kind: Kind, now: Status, before: Status) -> Result {
-		use Status::*;
-		if before == Unset {
-			return Ok(());
-		}
-		let expect = match kind {
-			Kind::CreateGame => vec![InitGame],
-			Kind::JoinGame => vec![InGame],
-			Kind::RestartGame => vec![InGame],
-			Kind::StartReplay => vec![InReplay],
-			Kind::LeaveGame => vec![Launched],
-			Kind::Quit => vec![Quit],
-			Kind::Step | Kind::Observation => vec![InGame, InReplay, Ended],
-			Kind::Debug => return Ok(()),
-			_ => vec![before],
-		};
-		if expect.contains(&now) {
-			Ok(())
-		} else {
-			Err(Error::BadStatus(now, expect))
+pub trait ToRequest: Into<Request> + MapResponse + KindOf {}
+impl<T: Into<Request> + MapResponse + KindOf> ToRequest for T {}
+
+pub trait RequestSetId {
+	fn id(self, id: u32) -> SetId<Self>
+	where
+		Self: Sized;
+}
+impl<R> RequestSetId for R {
+	fn id(self, id: u32) -> SetId<Self> {
+		SetId(self, id)
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SetId<R>(R, u32);
+impl<R: Into<Request>> From<SetId<R>> for Request {
+	fn from(r: SetId<R>) -> Self {
+		Self {
+			id: r.1,
+			..r.0.into()
 		}
 	}
+}
+impl<R: MapResponse> MapResponse for SetId<R> {
+	type Data = R::Data;
 
-	fn check_errors(res: &Res) -> Result {
-		macro_rules! match_errors {
-			($($Var:ident $mod:ident $($ed:expr)?),+ $(,)?) => {
-				match res.data {
-					$(ResVar::$Var(ref var) => {
-						let err = var.error();
-						if err != sc2_prost::$mod::Error::Unset {
-							return Err(Sc2Error {
-								kind: Kind::$Var,
-								err: format!("{err:?}"),
-								desc: match_errors!(@var $($ed)?),
-							}
-							.into())
-						}
-					})+
-					_ => {}
-				}
-			};
-			(@$res:ident) => { $res.error_details.clone() };
-			(@$res:ident $ed:expr) => { $ed };
-		}
-		match_errors! {
-			CreateGame response_create_game,
-			JoinGame response_join_game,
-			RestartGame response_restart_game,
-			StartReplay response_start_replay,
-			ReplayInfo response_replay_info,
-			SaveMap response_save_map String::new(),
-			MapCommand response_map_command,
-		}
-		Ok(())
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		R::map_res(res)
+	}
+}
+impl<R: KindOf> KindOf for SetId<R> {
+	fn kind(&self) -> Kind {
+		self.0.kind()
+	}
+}
+
+#[doc(hidden)]
+pub mod internal {
+	use prost::Message as _;
+	use tungstenite::Message;
+
+	use super::*;
+
+	pub fn req_into_msg(req: Request) -> Message {
+		Message::Binary(req.encode_to_vec().into())
+	}
+	pub fn res_from_msg(msg: Message) -> Result<Response> {
+		Ok(Response::decode(msg.into_data())?)
+	}
+	#[cfg(feature = "server")]
+	pub fn req_from_msg(msg: Message) -> server::Result<Request> {
+		Ok(Request::decode(msg.into_data())?)
+	}
+	pub fn res_into_msg(res: Response) -> Message {
+		Message::Binary(res.encode_to_vec().into())
 	}
 
-	pub fn req_into_msg(req: Req) -> tungstenite::Message {
-		let req = sc2_prost::Request {
-			id: 0,
-			request: Some(req),
-		};
-		tungstenite::Message::Binary(req.encode_to_vec().into())
-	}
-	pub fn res_from_msg(msg: tungstenite::Message, req_kind: Kind) -> Result<Res> {
-		let res = sc2_prost::Response::decode(msg.into_data())?;
-		Res::try_from(res).map_err(|mut e| {
-			if e.kind == Kind::None {
-				e.kind = req_kind;
-			}
+	pub fn convert_res(response: Response, kind: Kind) -> Result<Res> {
+		Res::try_from(response).map_err(|mut e| {
+			e.kind = kind;
 			e.into()
 		})
-	}
-
-	pub fn empty_res<R>(res: Res<R>) -> Res<()> {
-		res.map(|_| ())
 	}
 }

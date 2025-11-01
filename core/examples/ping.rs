@@ -1,4 +1,4 @@
-use sc2_core::{Client, Result};
+use sc2_core::{Client, Result, request::Ping};
 use std::env;
 
 fn main() {
@@ -12,11 +12,11 @@ fn run() -> Result {
 
 	let mut client = Client::connect(addr)?;
 
-	let res = client.ping()?;
+	let res = client.request(Ping)?;
 	println!("Status: {:?}", res.status);
-	if !res.warns.is_empty() {
+	if !res.warnings.is_empty() {
 		println!("Warnings:");
-		for (i, msg) in (1..).zip(res.warns) {
+		for (i, msg) in (1..).zip(res.warnings) {
 			println!("{i}. {msg}");
 		}
 	}

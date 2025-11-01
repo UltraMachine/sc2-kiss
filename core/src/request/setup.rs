@@ -1,368 +1,456 @@
 use super::*;
-use sc2_prost::{Race, RequestCreateGame, RequestJoinGame, RequestStartReplay};
+use sc2_prost::{
+	InterfaceOptions, LocalMap, PlayerSetup, PlayerType, PortSet, Race, SpatialCameraSetup,
+	request_create_game::Map, request_join_game::Participation, request_start_replay::Replay,
+};
 use std::net::IpAddr;
 
-macro_rules! simple_requests {
-	($( $(#[$attr:meta])* $name:ident $Var:ident ),+ $(,)?) => {$(
-		$(#[$attr])*
-		pub fn $name(&mut self) -> Result<Res<()>> {
-			self.request(Req::$Var(Default::default())).map(empty_res)
+pub fn create_game() -> CreateGame {
+	Default::default()
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct CreateGame(sc2_prost::RequestCreateGame);
+impl CreateGame {
+	pub fn map(mut self, path: Utf8PathBuf) -> Self {
+		if let Some(Map::LocalMap(LocalMap { map_path, .. })) = &mut self.0.map {
+			*map_path = path.into();
+			return self;
 		}
-	)+};
-}
-
-/// Game setup
-impl Client {
-	/**
-	Sends [`CreateGame`](Req::CreateGame) request to the server.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestCreateGame { /* Game config */ };
-	let res = client.request(Req::CreateGame(req))?;
-	```
-
-	# Examples
-	Single player game vs computer:
-	```no_run
-	use sc2_core::request::{
-		create_game::{Computer, Participant},
-		GameCfg,
-	};
-	use sc2_prost::{AiBuild, Difficulty};
-
-	let cfg = GameCfg {
-		map: "Test.SC2Map".into(),
-		participants: vec![
-			Participant::Player,
-			Participant::Computer(Computer {
-				difficulty: Difficulty::VeryHard,
-				ai_build: AiBuild::Rush,
-				..Default::default()
-			}),
-		],
-		..Default::default()
-	};
-	let res = client.create_game(cfg)?;
-	```
-	*/
-	pub fn create_game(&mut self, cfg: impl Into<RequestCreateGame>) -> Result<Res<()>> {
-		request!(self.CreateGame(cfg.into())).map(empty_res)
+		self.0.map = Some(Map::LocalMap(LocalMap {
+			map_path: path.into(),
+			map_data: vec![],
+		}));
+		self
 	}
-	/**
-	Sends [`JoinGame`](Req::JoinGame) request to the server.
-	Returns [`player_id`] in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestJoinGame { /* Join config */ };
-	let res = client.request(Req::JoinGame(req))?;
-	let ResVar::JoinGame(data) = res.data else { unreachable!() };
-	let player_id = data.player_id;
-	```
-
-	# Examples
-
-	Join single player game:
-	```no_run
-	use sc2_core::request::JoinCfg;
-	use sc2_prost::Race;
-
-	let cfg = JoinCfg {
-		join_as: Race::Terran.into(),
-		name: "TestBot".into(),
-		..Default::default()
-	};
-	let res = client.join_game(cfg)?;
-	println!("Our player_id: {}", res.data);
-	```
-
-	Join multi player game:
-	```no_run
-	use sc2_core::request::JoinCfg;
-	use sc2_prost::Race;
-
-	let cfg = JoinCfg {
-		join_as: Race::Terran.into(),
-		server_ports: Some((5001, 5002).into()),
-		client_ports: vec![(5003, 5004).into(), (5005, 5006).into()],
-		host: "127.0.0.1".parse().ok(),
-		..Default::default()
-	};
-	let res = client.join_game(cfg)?;
-	println!("Our player_id: {}", res.data);
-	```
-
-	[`player_id`]: sc2_prost::ResponseJoinGame::player_id
-	*/
-	pub fn join_game(&mut self, cfg: impl Into<RequestJoinGame>) -> Result<Res<PlayerId>> {
-		request!(self.JoinGame(cfg.into()).player_id).map_res(Into::into)
+	pub fn map_data(mut self, data: Vec<u8>) -> Self {
+		if let Some(Map::LocalMap(LocalMap { map_data, .. })) = &mut self.0.map {
+			*map_data = data;
+			return self;
+		}
+		self.0.map = Some(Map::LocalMap(LocalMap {
+			map_path: String::new(),
+			map_data: data,
+		}));
+		self
 	}
-	/**
-	Sends [`RestartGame`](Req::RestartGame) request to the server.
-	Returns [`need_hard_reset`] flag in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let res = client.request(Req::RestartGame(Default::default()))?;
-	let ResVar::RestartGame(data) = res.data else { unreachable!() };
-	let need_hard_reset = data.need_hard_reset;
-	```
-
-	[`need_hard_reset`]: sc2_prost::ResponseRestartGame::need_hard_reset
-	*/
-	pub fn restart_game(&mut self) -> Result<Res<bool>> {
-		request!(self.RestartGame.need_hard_reset)
+	pub fn battlenet_map(mut self, name: String) -> Self {
+		if let Some(Map::BattlenetMapName(map_name)) = &mut self.0.map {
+			*map_name = name;
+			return self;
+		}
+		self.0.map = Some(Map::BattlenetMapName(name));
+		self
 	}
-	/**
-	Sends [`StartReplay`](Req::StartReplay) request to the server.
 
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestStartReplay { /* Replay config */ };
-	let res = client.request(Req::StartReplay(req))?;
-	```
-	*/
-	pub fn start_replay(&mut self, cfg: impl Into<RequestStartReplay>) -> Result<Res<()>> {
-		request!(self.StartReplay(cfg.into())).map(empty_res)
+	pub fn player_setup(mut self, setup: Vec<PlayerSetup>) -> Self {
+		self.0.player_setup = setup;
+		self
 	}
-	simple_requests! {
-		/**
-		Sends [`LeaveGame`](Req::LeaveGame) request to the server.
 
-		Convenience method for:
-		```no_run
-		use sc2_core::Req;
-
-		let res = client.request(Req::LeaveGame(Default::default()))?;
-		```
-		*/
-		leave_game LeaveGame,
-		/**
-		Sends [`QuickSave`](Req::QuickSave) request to the server.
-
-		Convenience method for:
-		```no_run
-		use sc2_core::Req;
-
-		let res = client.request(Req::QuickSave(Default::default()))?;
-		```
-		*/
-		quick_save QuickSave,
-		/**
-		Sends [`QuickLoad`](Req::QuickLoad) request to the server.
-
-		Convenience method for:
-		```no_run
-		use sc2_core::Req;
-
-		let res = client.request(Req::QuickLoad(Default::default()))?;
-		```
-		*/
-		quick_load QuickLoad,
-		/**
-		Sends [`Quit`](Req::Quit) request to the server.
-
-		Convenience method for:
-		```no_run
-		use sc2_core::Req;
-
-		let res = client.request(Req::Quit(Default::default()))?;
-		```
-		*/
-		quit Quit,
+	pub fn disable_fog(mut self, value: bool) -> Self {
+		self.0.disable_fog = value;
+		self
+	}
+	pub fn random_seed(mut self, value: u32) -> Self {
+		self.0.random_seed = value;
+		self
+	}
+	pub fn realtime(mut self, value: bool) -> Self {
+		self.0.realtime = value;
+		self
 	}
 }
-
-/// Game configuration for [`Client::create_game`] request.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct GameCfg {
-	/// Map for the game. Can be specified as a path or data bytes.
-	pub map: Handle,
-	/// Game participants.
-	pub participants: Vec<create_game::Participant>,
-	/// If set to `true`, fog of war will be disabled for all players
-	pub disable_fog: bool,
-	/// Can be used to reproduce randomness of the game.
-	pub random_seed: u32,
-	/// If set to `true`, game will run in realtime mode.
-	/// Otherwise game will run in step mode.
-	pub realtime: bool,
-}
-impl From<GameCfg> for RequestCreateGame {
-	fn from(cfg: GameCfg) -> Self {
-		use create_game::Participant::*;
-		use sc2_prost::PlayerType;
-
+impl From<CreateGame> for Request {
+	fn from(r: CreateGame) -> Self {
 		Self {
-			map: Some(sc2_prost::request_create_game::Map::LocalMap(
-				match cfg.map {
-					Handle::Path(path) => sc2_prost::LocalMap {
-						map_path: path.into(),
-						map_data: vec![],
-					},
-					Handle::Data(data) => sc2_prost::LocalMap {
-						map_path: "".into(),
-						map_data: data,
-					},
-				},
-			)),
-			player_setup: cfg
-				.participants
-				.into_iter()
-				.map(|p| match p {
-					Player => sc2_prost::PlayerSetup {
-						r#type: PlayerType::Participant as i32,
-						..Default::default()
-					},
-					Computer(c) => sc2_prost::PlayerSetup {
-						r#type: PlayerType::Computer as i32,
-						race: c.race as i32,
-						difficulty: c.difficulty as i32,
-						player_name: c.name,
-						ai_build: c.ai_build as i32,
-					},
-					Observer => sc2_prost::PlayerSetup {
-						r#type: PlayerType::Observer as i32,
-						..Default::default()
-					},
-				})
-				.collect(),
-			disable_fog: cfg.disable_fog,
-			random_seed: cfg.random_seed,
-			realtime: cfg.realtime,
+			id: 0,
+			request: Some(RequestVar::CreateGame(r.0)),
 		}
 	}
 }
+impl MapResponse for CreateGame {
+	type Data = sc2_prost::ResponseCreateGame;
 
-pub mod create_game {
-	use super::*;
-
-	#[derive(Debug, Default, Clone, PartialEq, Eq)]
-	pub struct Computer {
-		pub race: Race,
-		pub difficulty: sc2_prost::Difficulty,
-		pub name: String,
-		pub ai_build: sc2_prost::AiBuild,
-	}
-
-	#[derive(Debug, Clone, PartialEq, Eq)]
-	pub enum Participant {
-		Player,
-		Computer(Computer),
-		Observer,
-	}
-}
-
-/// Player configuration for [`Client::join_game`] request.
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct JoinCfg {
-	/// Can join as a player with the specified [`Race`]
-	/// or as an observer of the player with specified [`PlayerId`].
-	pub join_as: join_game::JoinAs,
-	/// Interface config
-	pub interface: Interface,
-	pub server_ports: Option<join_game::Ports>,
-	pub client_ports: Vec<join_game::Ports>,
-	pub name: String,
-	pub host: Option<IpAddr>,
-}
-impl From<JoinCfg> for RequestJoinGame {
-	fn from(cfg: JoinCfg) -> Self {
-		use join_game::JoinAs;
-		use sc2_prost::request_join_game::Participation::*;
-
-		Self {
-			participation: Some(match cfg.join_as {
-				JoinAs::Player(race) => Race(race as i32),
-				JoinAs::Observer(id) => ObservedPlayerId(id.into()),
-			}),
-			options: Some(cfg.interface.into()),
-			server_ports: cfg.server_ports.map(Into::into),
-			client_ports: cfg.client_ports.into_iter().map(Into::into).collect(),
-			shared_port: 0,
-			player_name: cfg.name,
-			host_ip: cfg.host.map_or_else(String::new, |ip| ip.to_string()),
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::CreateGame(res) => Ok(res),
+			_ => Err(BadResError(Kind::CreateGame, res.kind()).into()),
 		}
 	}
 }
+impl KindOf for CreateGame {
+	fn kind(&self) -> Kind {
+		Kind::CreateGame
+	}
+}
 
-pub mod join_game {
-	use super::*;
+pub const PARTICIPANT: PlayerSetup = PlayerSetup {
+	r#type: PlayerType::Participant as i32,
+	race: 0,
+	difficulty: 0,
+	player_name: String::new(),
+	ai_build: 0,
+};
+pub const OBSERVER: PlayerSetup = PlayerSetup {
+	r#type: PlayerType::Observer as i32,
+	race: 0,
+	difficulty: 0,
+	player_name: String::new(),
+	ai_build: 0,
+};
 
-	#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-	pub enum JoinAs {
-		Player(Race),
-		Observer(PlayerId),
-	}
-	impl Default for JoinAs {
-		fn default() -> Self {
-			Self::Player(Default::default())
-		}
-	}
-	impl From<Race> for JoinAs {
-		fn from(race: Race) -> Self {
-			Self::Player(race)
-		}
+pub fn computer() -> Computer {
+	Computer(PlayerSetup {
+		r#type: PlayerType::Computer as i32,
+		race: 0,
+		difficulty: 0,
+		player_name: String::new(),
+		ai_build: 0,
+	})
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Computer(PlayerSetup);
+impl Computer {
+	pub fn setup(self) -> PlayerSetup {
+		self.0
 	}
 
-	#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-	pub struct Ports {
-		pub game: u16,
-		pub base: u16,
+	pub fn race(mut self, race: Race) -> Self {
+		self.0.set_race(race);
+		self
 	}
-	impl Ports {
-		pub fn new(game: u16, base: u16) -> Self {
-			Self { game, base }
-		}
+	pub fn difficulty(mut self, difficulty: sc2_prost::Difficulty) -> Self {
+		self.0.set_difficulty(difficulty);
+		self
 	}
-	impl From<(u16, u16)> for Ports {
-		fn from((game, base): (u16, u16)) -> Self {
-			Self { game, base }
-		}
+	pub fn name(mut self, name: String) -> Self {
+		self.0.player_name = name;
+		self
 	}
-	impl From<Ports> for sc2_prost::PortSet {
-		fn from(p: Ports) -> Self {
-			Self {
-				game_port: p.game as i32,
-				base_port: p.base as i32,
-			}
-		}
+	pub fn ai_build(mut self, ai_build: sc2_prost::AiBuild) -> Self {
+		self.0.set_ai_build(ai_build);
+		self
 	}
+}
+impl Default for Computer {
+	fn default() -> Self {
+		computer()
+	}
+}
+impl From<Computer> for PlayerSetup {
+	fn from(c: Computer) -> Self {
+		c.0
+	}
+}
+
+pub fn join_game() -> JoinGame {
+	Default::default()
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct ReplayCfg {
-	pub replay: Handle,
-	pub map_data: Vec<u8>,
-	pub player: u32,
-	pub interface: Interface,
-	pub disable_fog: bool,
-	pub realtime: bool,
-	pub record: bool,
+pub struct JoinGame(sc2_prost::RequestJoinGame);
+impl JoinGame {
+	pub fn participant(mut self, race: Race) -> Self {
+		self.0.participation = Some(Participation::Race(race as i32));
+		self
+	}
+	pub fn observer(mut self, observed_player: PlayerId) -> Self {
+		self.0.participation = Some(Participation::ObservedPlayerId(observed_player.0));
+		self
+	}
+
+	pub fn interface(mut self, interface: impl Into<InterfaceOptions>) -> Self {
+		self.0.options = Some(interface.into());
+		self
+	}
+
+	pub fn server_ports(mut self, ports: impl Into<PortSet>) -> Self {
+		self.0.server_ports = Some(ports.into());
+		self
+	}
+	pub fn client_ports(mut self, ports: Vec<PortSet>) -> Self {
+		self.0.client_ports = ports;
+		self
+	}
+
+	pub fn name(mut self, name: String) -> Self {
+		self.0.player_name = name;
+		self
+	}
+	pub fn host_ip(mut self, ip: IpAddr) -> Self {
+		self.0.host_ip = ip.to_string();
+		self
+	}
 }
-impl From<ReplayCfg> for RequestStartReplay {
-	fn from(cfg: ReplayCfg) -> Self {
-		use sc2_prost::request_start_replay::Replay::*;
+impl From<JoinGame> for Request {
+	fn from(r: JoinGame) -> Self {
 		Self {
-			replay: Some(match cfg.replay {
-				Handle::Path(path) => ReplayPath(path.into()),
-				Handle::Data(data) => ReplayData(data),
-			}),
-			map_data: cfg.map_data,
-			observed_player_id: cfg.player,
-			options: Some(cfg.interface.into()),
-			disable_fog: cfg.disable_fog,
-			realtime: cfg.realtime,
-			record_replay: cfg.record,
+			id: 0,
+			request: Some(RequestVar::JoinGame(r.0)),
 		}
+	}
+}
+impl MapResponse for JoinGame {
+	type Data = sc2_prost::ResponseJoinGame;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::JoinGame(res) => Ok(res),
+			_ => Err(BadResError(Kind::JoinGame, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for JoinGame {
+	fn kind(&self) -> Kind {
+		Kind::JoinGame
+	}
+}
+
+pub fn interface() -> Interface {
+	Default::default()
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub struct Interface(InterfaceOptions);
+impl Interface {
+	pub fn raw(mut self, value: bool) -> Self {
+		self.0.raw = value;
+		self
+	}
+	pub fn score(mut self, value: bool) -> Self {
+		self.0.score = value;
+		self
+	}
+	pub fn cloaked(mut self, value: bool) -> Self {
+		self.0.show_cloaked = value;
+		self
+	}
+	pub fn burrowed(mut self, value: bool) -> Self {
+		self.0.show_burrowed_shadows = value;
+		self
+	}
+	pub fn placeholders(mut self, value: bool) -> Self {
+		self.0.show_placeholders = value;
+		self
+	}
+	pub fn affect_selection(mut self, value: bool) -> Self {
+		self.0.raw_affects_selection = value;
+		self
+	}
+	pub fn crop_raw(mut self, value: bool) -> Self {
+		self.0.raw_crop_to_playable_area = value;
+		self
+	}
+
+	pub fn feature(mut self, camera: SpatialCameraSetup) -> Self {
+		self.0.feature_layer = Some(camera);
+		self
+	}
+	pub fn render(mut self, camera: SpatialCameraSetup) -> Self {
+		self.0.render = Some(camera);
+		self
+	}
+}
+impl From<Interface> for InterfaceOptions {
+	fn from(i: Interface) -> Self {
+		i.0
+	}
+}
+
+pub fn ports(game: u16, base: u16) -> PortSet {
+	(game, base).into()
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct StartReplay(sc2_prost::RequestStartReplay);
+impl StartReplay {
+	pub fn replay(mut self, path: Utf8PathBuf) -> Self {
+		self.0.replay = Some(Replay::ReplayPath(path.into()));
+		self
+	}
+	pub fn replay_data(mut self, data: Vec<u8>) -> Self {
+		self.0.replay = Some(Replay::ReplayData(data));
+		self
+	}
+
+	pub fn map_data(mut self, data: Vec<u8>) -> Self {
+		self.0.map_data = data;
+		self
+	}
+	pub fn observed_player(mut self, player: PlayerId) -> Self {
+		self.0.observed_player_id = player.0;
+		self
+	}
+	pub fn interface(mut self, interface: impl Into<InterfaceOptions>) -> Self {
+		self.0.options = Some(interface.into());
+		self
+	}
+
+	pub fn disable_fog(mut self, value: bool) -> Self {
+		self.0.disable_fog = value;
+		self
+	}
+	pub fn realtime(mut self, value: bool) -> Self {
+		self.0.realtime = value;
+		self
+	}
+	pub fn record_replay(mut self, value: bool) -> Self {
+		self.0.record_replay = value;
+		self
+	}
+}
+impl From<StartReplay> for Request {
+	fn from(r: StartReplay) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::StartReplay(r.0)),
+		}
+	}
+}
+impl MapResponse for StartReplay {
+	type Data = sc2_prost::ResponseStartReplay;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::StartReplay(res) => Ok(res),
+			_ => Err(BadResError(Kind::StartReplay, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for StartReplay {
+	fn kind(&self) -> Kind {
+		Kind::StartReplay
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RestartGame;
+impl From<RestartGame> for Request {
+	fn from(_: RestartGame) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::RestartGame(Default::default())),
+		}
+	}
+}
+impl MapResponse for RestartGame {
+	type Data = sc2_prost::ResponseRestartGame;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::RestartGame(res) => Ok(res),
+			_ => Err(BadResError(Kind::RestartGame, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for RestartGame {
+	fn kind(&self) -> Kind {
+		Kind::RestartGame
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LeaveGame;
+impl From<LeaveGame> for Request {
+	fn from(_: LeaveGame) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::LeaveGame(Default::default())),
+		}
+	}
+}
+impl MapResponse for LeaveGame {
+	type Data = ();
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::LeaveGame(_) => Ok(()),
+			_ => Err(BadResError(Kind::LeaveGame, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for LeaveGame {
+	fn kind(&self) -> Kind {
+		Kind::LeaveGame
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct QuickSave;
+impl From<QuickSave> for Request {
+	fn from(_: QuickSave) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::QuickSave(Default::default())),
+		}
+	}
+}
+impl MapResponse for QuickSave {
+	type Data = ();
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::QuickSave(_) => Ok(()),
+			_ => Err(BadResError(Kind::QuickSave, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for QuickSave {
+	fn kind(&self) -> Kind {
+		Kind::QuickSave
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct QuickLoad;
+impl From<QuickLoad> for Request {
+	fn from(_: QuickLoad) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::QuickLoad(Default::default())),
+		}
+	}
+}
+impl MapResponse for QuickLoad {
+	type Data = ();
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::QuickLoad(_) => Ok(()),
+			_ => Err(BadResError(Kind::QuickLoad, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for QuickLoad {
+	fn kind(&self) -> Kind {
+		Kind::QuickLoad
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Quit;
+impl From<Quit> for Request {
+	fn from(_: Quit) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Quit(Default::default())),
+		}
+	}
+}
+impl MapResponse for Quit {
+	type Data = ();
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Quit(_) => Ok(()),
+			_ => Err(BadResError(Kind::Quit, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Quit {
+	fn kind(&self) -> Kind {
+		Kind::Quit
 	}
 }

@@ -105,3 +105,12 @@ mod glam {
 		}
 	}
 }
+
+impl From<(u16, u16)> for PortSet {
+	fn from(p: (u16, u16)) -> Self {
+		Self {
+			game_port: p.0 as i32,
+			base_port: p.1 as i32,
+		}
+	}
+}

@@ -1,195 +1,322 @@
 use super::*;
+use sc2_prost::{RequestAction, RequestMapCommand, RequestObserverAction, RequestStep};
 
-/// During game
-impl Client {
-	/**
-	Sends [`GameInfo`](Req::GameInfo) request to the server.
-	Returns static data about the current game and map in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let res = client.request(Req::GameInfo(Default::default()))?;
-	let ResVar::GameInfo(data) = res.data else { unreachable!() };
-	```
-	*/
-	pub fn game_info(&mut self) -> Result<Res<sc2_prost::ResponseGameInfo>> {
-		request!(self.GameInfo)
-	}
-	/**
-	Sends [`Observation`](Req::Observation) request to the server.
-	Returns snapshot of the current game state in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestObservation { /* Observation options */ };
-	let res = client.request(Req::Observation(req))?;
-	let ResVar::Observation(data) = res.data else { unreachable!() };
-	```
-	*/
-	pub fn observation(
-		&mut self,
-		cfg: sc2_prost::RequestObservation,
-	) -> Result<Res<sc2_prost::ResponseObservation>> {
-		request!(self.Observation(cfg))
-	}
-	/**
-	Sends [`Action`](Req::Action) request to the server.
-	Returns action results in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestAction { actions: vec![] };
-	let res = client.request(Req::Action(req))?;
-	let ResVar::Action(data) = res.data else { unreachable!() };
-	let action_results = data.result;
-	```
-	*/
-	pub fn action(
-		&mut self,
-		actions: Vec<sc2_prost::Action>,
-	) -> Result<Res<Vec<sc2_prost::ActionResult>>> {
-		let req = sc2_prost::RequestAction { actions };
-		request!(self.Action(req)).map_res(|res| {
-			res.result
-				.into_iter()
-				.map(|num| num.try_into().unwrap_or_default())
-				.collect()
-		})
-	}
-	/**
-	Sends [`ObsAction`](Req::ObsAction) request to the server.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestObserverAction { actions: vec![] };
-	let res = client.request(Req::ObsAction(req))?;
-	```
-	*/
-	pub fn obs_action(&mut self, acts: Vec<sc2_prost::observer_action::Action>) -> Result<Res<()>> {
-		let req = sc2_prost::RequestObserverAction {
-			actions: acts
-				.into_iter()
-				.map(|act| sc2_prost::ObserverAction { action: Some(act) })
-				.collect(),
-		};
-		request!(self.ObsAction(req)).map(empty_res)
-	}
-	/**
-	Sends [`Step`](Req::Step) request to the server.
-	Returns [`simulation_loop`] in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let res = client.request(Req::Step(sc2_prost::RequestStep { count: 2 }))?;
-	let ResVar::Step(data) = res.data else { unreachable!() };
-	let simulation_loop = data.simulation_loop;
-	```
-
-	[`simulation_loop`]: sc2_prost::ResponseStep::simulation_loop
-	*/
-	pub fn step(&mut self, count: u32) -> Result<Res<u32>> {
-		let req = sc2_prost::RequestStep { count };
-		request!(self.Step(req).simulation_loop)
-	}
-	/**
-	Sends [`Data`](Req::Data) request to the server.
-	Returns Ids data in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestData { /* Data options */ };
-	let res = client.request(Req::Data(req))?;
-	let ResVar::Data(data) = res.data else { unreachable!() };
-	```
-	# Examples
-	```no_run
-	use sc2_core::request::DataFlags;
-
-	let res = client.data(DataFlags::all())?;
-	```
-	*/
-	pub fn data(&mut self, flags: DataFlags) -> Result<Res<sc2_prost::ResponseData>> {
-		request!(self.Data(flags.into()))
-	}
-	/**
-	Sends [`Query`](Req::Query) request to the server.
-	Returns query results in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestQuery { /* Query fields */ };
-	let res = client.request(Req::Query(req))?;
-	let ResVar::Query(data) = res.data else { unreachable!() };
-	```
-	*/
-	pub fn query(&mut self, cfg: sc2_prost::RequestQuery) -> Result<Res<sc2_prost::ResponseQuery>> {
-		request!(self.Query(cfg))
-	}
-	/**
-	Sends [`SaveReplay`](Req::SaveReplay) request to the server.
-	Returns replay data in response.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let res = client.request(Req::SaveReplay(Default::default()))?;
-	let ResVar::SaveReplay(data) = res.data else { unreachable!() };
-	```
-	*/
-	pub fn save_replay(&mut self) -> Result<Res<Vec<u8>>> {
-		request!(self.SaveReplay.data)
-	}
-	/**
-	Sends [`MapCommand`](Req::MapCommand) request to the server.
-
-	Convenience method for:
-	```no_run
-	use sc2_core::Req;
-
-	let req = sc2_prost::RequestMapCommand { trigger_cmd: "Some map command".into() };
-	let res = client.request(Req::MapCommand(req))?;
-	```
-	*/
-	pub fn map_command(&mut self, cmd: String) -> Result<Res<()>> {
-		let req = sc2_prost::RequestMapCommand { trigger_cmd: cmd };
-		request!(self.MapCommand(req)).map(empty_res)
-	}
-}
-
-bitflags! {
-	#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-	#[repr(transparent)]
-	pub struct DataFlags: u8 {
-		const ABILITIES = 1;
-		const UNITS     = 1 << 1;
-		const UPGRADES  = 1 << 2;
-		const BUFFS     = 1 << 3;
-		const EFFECTS   = 1 << 4;
-	}
-}
-impl From<DataFlags> for sc2_prost::RequestData {
-	fn from(flags: DataFlags) -> Self {
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GameInfo;
+impl From<GameInfo> for Request {
+	fn from(_: GameInfo) -> Self {
 		Self {
-			ability_id: flags.contains(DataFlags::ABILITIES),
-			unit_type_id: flags.contains(DataFlags::UNITS),
-			upgrade_id: flags.contains(DataFlags::UPGRADES),
-			buff_id: flags.contains(DataFlags::BUFFS),
-			effect_id: flags.contains(DataFlags::EFFECTS),
+			id: 0,
+			request: Some(RequestVar::GameInfo(Default::default())),
 		}
+	}
+}
+impl MapResponse for GameInfo {
+	type Data = sc2_prost::ResponseGameInfo;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::GameInfo(res) => Ok(res),
+			_ => Err(BadResError(Kind::GameInfo, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for GameInfo {
+	fn kind(&self) -> Kind {
+		Kind::GameInfo
+	}
+}
+
+pub fn observation() -> Observation {
+	Default::default()
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Observation(sc2_prost::RequestObservation);
+impl Observation {
+	pub fn disable_fog(mut self, value: bool) -> Self {
+		self.0.disable_fog = value;
+		self
+	}
+	pub fn game_loop(mut self, value: u32) -> Self {
+		self.0.game_loop = value;
+		self
+	}
+}
+impl From<Observation> for Request {
+	fn from(r: Observation) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Observation(r.0)),
+		}
+	}
+}
+impl MapResponse for Observation {
+	type Data = sc2_prost::ResponseObservation;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Observation(res) => Ok(res),
+			_ => Err(BadResError(Kind::Observation, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Observation {
+	fn kind(&self) -> Kind {
+		Kind::Observation
+	}
+}
+
+pub fn action(actions: Vec<sc2_prost::Action>) -> Action {
+	Action(RequestAction { actions })
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct Action(RequestAction);
+impl From<Action> for Request {
+	fn from(r: Action) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Action(r.0)),
+		}
+	}
+}
+impl MapResponse for Action {
+	type Data = sc2_prost::ResponseAction;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Action(res) => Ok(res),
+			_ => Err(BadResError(Kind::Action, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Action {
+	fn kind(&self) -> Kind {
+		Kind::Action
+	}
+}
+
+pub fn observer_action(actions: Vec<sc2_prost::ObserverAction>) -> ObserverAction {
+	ObserverAction(RequestObserverAction { actions })
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct ObserverAction(RequestObserverAction);
+impl From<ObserverAction> for Request {
+	fn from(r: ObserverAction) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::ObsAction(r.0)),
+		}
+	}
+}
+impl MapResponse for ObserverAction {
+	type Data = ();
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::ObsAction(_) => Ok(()),
+			_ => Err(BadResError(Kind::ObsAction, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for ObserverAction {
+	fn kind(&self) -> Kind {
+		Kind::ObsAction
+	}
+}
+
+pub fn step(count: u32) -> Step {
+	Step(RequestStep { count })
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Step(RequestStep);
+impl From<Step> for Request {
+	fn from(r: Step) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Step(r.0)),
+		}
+	}
+}
+impl MapResponse for Step {
+	type Data = sc2_prost::ResponseStep;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Step(res) => Ok(res),
+			_ => Err(BadResError(Kind::Step, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Step {
+	fn kind(&self) -> Kind {
+		Kind::Step
+	}
+}
+
+pub fn data() -> Data {
+	Default::default()
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Data(sc2_prost::RequestData);
+impl Data {
+	pub fn abilities(mut self, value: bool) -> Self {
+		self.0.ability_id = value;
+		self
+	}
+	pub fn units(mut self, value: bool) -> Self {
+		self.0.unit_type_id = value;
+		self
+	}
+	pub fn upgrades(mut self, value: bool) -> Self {
+		self.0.upgrade_id = value;
+		self
+	}
+	pub fn buffs(mut self, value: bool) -> Self {
+		self.0.buff_id = value;
+		self
+	}
+	pub fn effects(mut self, value: bool) -> Self {
+		self.0.effect_id = value;
+		self
+	}
+
+	pub fn all(self) -> Self {
+		self.abilities(true)
+			.units(true)
+			.upgrades(true)
+			.buffs(true)
+			.effects(true)
+	}
+}
+impl From<Data> for Request {
+	fn from(r: Data) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Data(r.0)),
+		}
+	}
+}
+impl MapResponse for Data {
+	type Data = sc2_prost::ResponseData;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Data(res) => Ok(res),
+			_ => Err(BadResError(Kind::Data, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Data {
+	fn kind(&self) -> Kind {
+		Kind::Data
+	}
+}
+
+pub fn query() -> Query {
+	Default::default()
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct Query(sc2_prost::RequestQuery);
+impl Query {
+	pub fn pathing(mut self, pathing: Vec<sc2_prost::RequestQueryPathing>) -> Self {
+		self.0.pathing = pathing;
+		self
+	}
+	pub fn abilities(mut self, abilities: Vec<sc2_prost::RequestQueryAvailableAbilities>) -> Self {
+		self.0.abilities = abilities;
+		self
+	}
+	pub fn placements(mut self, placements: Vec<sc2_prost::RequestQueryBuildingPlacement>) -> Self {
+		self.0.placements = placements;
+		self
+	}
+	pub fn ignore_resource_requirements(mut self, value: bool) -> Self {
+		self.0.ignore_resource_requirements = value;
+		self
+	}
+}
+impl From<Query> for Request {
+	fn from(r: Query) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::Query(r.0)),
+		}
+	}
+}
+impl MapResponse for Query {
+	type Data = sc2_prost::ResponseQuery;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::Query(res) => Ok(res),
+			_ => Err(BadResError(Kind::Query, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for Query {
+	fn kind(&self) -> Kind {
+		Kind::Query
+	}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SaveReplay;
+impl From<SaveReplay> for Request {
+	fn from(_: SaveReplay) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::SaveReplay(Default::default())),
+		}
+	}
+}
+impl MapResponse for SaveReplay {
+	type Data = sc2_prost::ResponseSaveReplay;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::SaveReplay(res) => Ok(res),
+			_ => Err(BadResError(Kind::SaveReplay, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for SaveReplay {
+	fn kind(&self) -> Kind {
+		Kind::SaveReplay
+	}
+}
+
+pub fn map_command(cmd: String) -> MapCommand {
+	MapCommand(RequestMapCommand { trigger_cmd: cmd })
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct MapCommand(RequestMapCommand);
+impl From<MapCommand> for Request {
+	fn from(r: MapCommand) -> Self {
+		Self {
+			id: 0,
+			request: Some(RequestVar::MapCommand(r.0)),
+		}
+	}
+}
+impl MapResponse for MapCommand {
+	type Data = sc2_prost::ResponseMapCommand;
+
+	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+		match res {
+			ResponseVar::MapCommand(res) => Ok(res),
+			_ => Err(BadResError(Kind::MapCommand, res.kind()).into()),
+		}
+	}
+}
+impl KindOf for MapCommand {
+	fn kind(&self) -> Kind {
+		Kind::MapCommand
 	}
 }

@@ -3,9 +3,9 @@ use bpaf::Bpaf;
 use camino::Utf8PathBuf;
 use convert_case::{Case, Casing};
 use sc2_core::{
-	client::{Client, Result},
-	instance::{Launcher, OnDrop::Kill},
-	request::{create_game::Participant, DataFlags, GameCfg, JoinCfg},
+	launcher::{launcher, OnDrop::Kill},
+	request::{create_game, data, join_game, PARTICIPANT},
+	Client, Result,
 };
 use std::{
 	collections::HashSet,
@@ -57,24 +57,18 @@ fn gen(opts: Cli) -> Result {
 	// load data
 	let data = match opts.input {
 		Input::Map { map, addr } => {
-			let _instance = Launcher {
-				addr,
-				on_drop: Kill,
-				..<_>::default()
-			}
-			.spawn()
-			.expect("Can't launch SC2");
+			// IMPORTANT: Instance must be binded to a variable so it doesn't immediately drop
+			let _instance = launcher()
+				.addr(addr)
+				.on_drop(Kill)
+				.spawn()
+				.expect("Can't launch SC2");
 
-			let mut client = Client::connect_timeout(addr, Duration::from_secs(5))?;
+			let mut client = Client::connect_timeout(&addr, Duration::from_secs(5))?;
 
-			client.create_game(GameCfg {
-				map: map.into(),
-				participants: vec![Participant::Player],
-				..<_>::default()
-			})?;
-			client.join_game(JoinCfg::default())?;
-
-			client.data(DataFlags::all())?.data
+			client.request(create_game().map(map).player_setup(vec![PARTICIPANT]))?;
+			client.request(join_game())?;
+			client.request(data().all())?.data
 		}
 		Input::Data { data } => {
 			let file = BufReader::new(File::open(&data).expect("Can't open data"));

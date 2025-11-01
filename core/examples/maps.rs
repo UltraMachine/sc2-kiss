@@ -1,4 +1,4 @@
-use sc2_core::{Client, Result};
+use sc2_core::{Client, Result, request::AvailableMaps};
 use std::env;
 
 fn main() {
@@ -12,7 +12,7 @@ fn run() -> Result {
 
 	let mut client = Client::connect(addr)?;
 
-	let data = client.available_maps()?.data;
+	let data = client.request(AvailableMaps)?.data;
 	println!("Local maps:");
 	for map in data.local_map_paths {
 		println!("- {map}");

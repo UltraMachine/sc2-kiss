@@ -24,15 +24,11 @@ pub mod client;
 #[cfg(feature = "client")]
 pub use client::{Client, Error, Result};
 
-// #[cfg(feature = "server")]
-// pub mod server;
-// #[cfg(feature = "server")]
-// pub use server::Server;
+#[cfg(feature = "server")]
+pub mod server;
 
-#[cfg(feature = "instance")]
-pub mod instance;
-#[cfg(feature = "instance")]
-pub use instance::Launcher;
+#[cfg(feature = "launcher")]
+pub mod launcher;
 
 #[cfg(feature = "request-helpers")]
 pub mod request;
@@ -40,4 +36,5 @@ pub mod request;
 pub mod common;
 use common::{internal::*, *};
 
-pub use sc2_prost::{self, Status, request::Request as Req, response::Response as ResVar};
+pub use sc2_prost::{self, Request, Response, Status};
+pub use sc2_prost::{request::Request as RequestVar, response::Response as ResponseVar};
