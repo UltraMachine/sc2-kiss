@@ -60,6 +60,7 @@ pub struct LauncherBuilder<'a> {
 	verbose: bool,
 	rendering_lib: Option<RenderingLib<'a>>,
 
+	data_version: Option<&'a OsStr>,
 	display_mode: Option<DisplayMode>,
 	extra: Vec<&'a OsStr>,
 	on_drop: OnDrop,
@@ -108,14 +109,14 @@ impl<'a> LauncherBuilder<'a> {
 	/// Sets which version to use in `Versions` folder (e.g. `Base75689`)
 	///
 	/// If not set, launcher will try to automatically locate the latest version.
-	pub fn version(mut self, path: &'a impl AsRef<Path>) -> Self {
+	pub fn version(mut self, path: &'a (impl AsRef<Path> + ?Sized)) -> Self {
 		self.version = Some(path.as_ref());
 		self
 	}
 	/// Which executable to launch.
 	///
 	/// Defaults to `SC2_x64.exe` on windows and `SC2_x64` on linux.
-	pub fn executable(mut self, path: &'a impl AsRef<Path>) -> Self {
+	pub fn executable(mut self, path: &'a (impl AsRef<Path> + ?Sized)) -> Self {
 		self.executable = Some(path.as_ref());
 		self
 	}
@@ -124,25 +125,25 @@ impl<'a> LauncherBuilder<'a> {
 	/// Defaults to [`game_dir`]`/Support64` on windows and [`game_dir`] on linux.
 	///
 	/// [`game_dir`]: Self::game_dir
-	pub fn current_dir(mut self, path: &'a impl AsRef<Path>) -> Self {
+	pub fn current_dir(mut self, path: &'a (impl AsRef<Path> + ?Sized)) -> Self {
 		self.current_dir = Some(path.as_ref());
 		self
 	}
 
-	pub fn data_dir(mut self, path: &'a impl AsRef<Path>) -> Self {
+	pub fn data_dir(mut self, path: &'a (impl AsRef<Path> + ?Sized)) -> Self {
 		self.data_dir = Some(path.as_ref());
 		self
 	}
-	pub fn temp_dir(mut self, path: &'a impl AsRef<Path>) -> Self {
+	pub fn temp_dir(mut self, path: &'a (impl AsRef<Path> + ?Sized)) -> Self {
 		self.temp_dir = Some(path.as_ref());
 		self
 	}
 
-	pub fn egl_path(mut self, path: &'a impl AsRef<Path>) -> Self {
+	pub fn egl_path(mut self, path: &'a (impl AsRef<Path> + ?Sized)) -> Self {
 		self.rendering_lib = Some(RenderingLib::EGL(path.as_ref()));
 		self
 	}
-	pub fn osmesa_path(mut self, path: &'a impl AsRef<Path>) -> Self {
+	pub fn osmesa_path(mut self, path: &'a (impl AsRef<Path> + ?Sized)) -> Self {
 		self.rendering_lib = Some(RenderingLib::OSMesa(path.as_ref()));
 		self
 	}
@@ -152,10 +153,15 @@ impl<'a> LauncherBuilder<'a> {
 		self
 	}
 
+	pub fn data_version(mut self, version_hash: &'a (impl AsRef<OsStr> + ?Sized)) -> Self {
+		self.data_version = Some(version_hash.as_ref());
+		self
+	}
+
 	/// Extra launcher arguments.
 	///
 	/// Anything from `%USERPROFILE%\Documents\StarCraft II\Variables.txt` should work.
-	pub fn extra<A: AsRef<OsStr>>(mut self, key: &'a A, value: &'a A) -> Self {
+	pub fn extra<A: AsRef<OsStr> + ?Sized>(mut self, key: &'a A, value: &'a A) -> Self {
 		self.extra.push(key.as_ref());
 		self.extra.push(value.as_ref());
 		self
@@ -201,6 +207,10 @@ impl LauncherBuilder<'_> {
 			.arg(self.addr.0.ip().to_string())
 			.arg("-port")
 			.arg(self.addr.0.port().to_string());
+
+		if let Some(data_version) = self.data_version {
+			cmd.arg("-dataVersion").arg(data_version);
+		}
 
 		if self.verbose {
 			cmd.arg("-verbose");
