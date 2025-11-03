@@ -4,7 +4,8 @@ use camino::Utf8PathBuf;
 use convert_case::{Case, Casing};
 use sc2_core::{
 	launcher::{launcher, OnDrop::Kill},
-	request::{create_game, data, join_game, PARTICIPANT},
+	request::{create_game, data, interface, join_game, PARTICIPANT},
+	sc2_prost::Race,
 	Client, Result,
 };
 use std::{
@@ -13,7 +14,6 @@ use std::{
 	io::{self, BufReader, BufWriter, Write},
 	net::{IpAddr, Ipv6Addr, SocketAddr},
 	path::PathBuf,
-	time::Duration,
 };
 
 const LOCALHOST_5000: SocketAddr = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 5000);
@@ -60,14 +60,18 @@ fn gen(opts: Cli) -> Result {
 			// IMPORTANT: Instance must be binded to a variable so it doesn't immediately drop
 			let _instance = launcher()
 				.addr(addr)
+				.version("Base75689")
+				.data_version("B89B5D6FA7CBF6452E721311BFBC6CB2")
 				.on_drop(Kill)
 				.spawn()
 				.expect("Can't launch SC2");
 
-			let mut client = Client::connect_timeout(&addr, Duration::from_secs(5))?;
+			let mut client = (0..3)
+				.find_map(|_| Client::connect(addr).ok())
+				.expect("Can't connect");
 
 			client.request(create_game().map(map).player_setup(vec![PARTICIPANT]))?;
-			client.request(join_game())?;
+			client.request(join_game().participant(Race::NoRace).interface(interface()))?;
 			client.request(data().all())?.data
 		}
 		Input::Data { data } => {
@@ -148,10 +152,16 @@ fn gen(opts: Cli) -> Result {
 	let buffs = data.buffs.into_iter().map(|buff| (buff.name, buff.buff_id));
 	make_ids(out_dir.clone(), "buff", buffs).expect("Failed to make buff ids");
 
-	let effects = data
-		.effects
-		.into_iter()
-		.map(|ef| (ef.friendly_name, ef.effect_id));
+	let effects = data.effects.into_iter().map(|ef| {
+		(
+			if !ef.friendly_name.is_empty() {
+				ef.friendly_name
+			} else {
+				ef.name
+			},
+			ef.effect_id,
+		)
+	});
 	make_ids(out_dir, "effect", effects).expect("Failed to make effect ids");
 
 	Ok(())

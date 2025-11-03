@@ -176,8 +176,7 @@ impl Buff {
 	pub const TAKEN_DAMAGE: Self = Self(299);
 	pub const RAVEN_SCRAMBLER_MISSILE_CARRIER: Self = Self(300);
 	pub const BATTERY_OVERCHARGE: Self = Self(301);
-	pub const LOAD_OUT_SPRAY_TRACKER: Self = Self(302);
-	pub const HYDRALISK_FRENZY: Self = Self(303);
+	pub const HYDRALISK_FRENZY: Self = Self(302);
 }
 impl fmt::Display for Buff {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -354,8 +353,7 @@ impl fmt::Display for Buff {
 			299 => "Taken Damage",
 			300 => "Raven Scrambler Missile Carrier",
 			301 => "Battery Overcharge",
-			302 => "Load Out Spray Tracker",
-			303 => "Hydralisk Frenzy",
+			302 => "Hydralisk Frenzy",
 			_ => return write!(f, "{self:?}"),
 		};
 		write!(f, "{s}")

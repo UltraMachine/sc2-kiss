@@ -54,7 +54,6 @@ impl Ability {
 	pub const BUILD_ENGINEERING_BAY: Self = Self(322);
 	pub const BUILD_MISSILE_TURRET: Self = Self(323);
 	pub const BUILD_BUNKER: Self = Self(324);
-	pub const TERRAN_BUILD_REFINERY: Self = Self(325);
 	pub const BUILD_SENSOR_TOWER: Self = Self(326);
 	pub const BUILD_GHOST_ACADEMY: Self = Self(327);
 	pub const BUILD_FACTORY: Self = Self(328);
@@ -403,14 +402,13 @@ impl Ability {
 	pub const MOVE: Self = Self(3794);
 	pub const PATROL: Self = Self(3795);
 	pub const GENERAL_UNLOAD_UNIT_UNLOAD_UNIT: Self = Self(3796);
-	pub const EFFECT_BATTERY_OVERCHARGE: Self = Self(4107);
-	pub const EFFECT_AMORPHOUS_ARMORCLOUD: Self = Self(4109);
-	pub const EFFECT_SHIELD_BATTERY_RECHARGE: Self = Self(4111);
-	pub const MORPH_BANELING: Self = Self(4119);
-	pub const EFFECT_ORACLE_CLOAK_FIELD: Self = Self(4122);
-	pub const EFFECT_ENERGY_RECHARGE: Self = Self(4440);
-	pub const EFFECT_SALVAGE: Self = Self(4442);
-	pub const EFFECT_GATHER: Self = Self(4446);
+	pub const EFFECT_AMORPHOUS_ARMORCLOUD: Self = Self(4111);
+	pub const EFFECT_SHIELD_BATTERY_RECHARGE: Self = Self(4113);
+	pub const MORPH_BANELING: Self = Self(4121);
+	pub const EFFECT_ORACLE_CLOAK_FIELD: Self = Self(4124);
+	pub const EFFECT_ENERGY_RECHARGE: Self = Self(4126);
+	pub const EFFECT_SALVAGE: Self = Self(4128);
+	pub const EFFECT_GATHER: Self = Self(4132);
 }
 impl fmt::Display for Ability {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -465,7 +463,6 @@ impl fmt::Display for Ability {
 			322 => "Build Engineering Bay",
 			323 => "Build Missile Turret",
 			324 => "Build Bunker",
-			325 => "Terran Build Refinery",
 			326 => "Build Sensor Tower",
 			327 => "Build Ghost Academy",
 			328 => "Build Factory",
@@ -814,14 +811,13 @@ impl fmt::Display for Ability {
 			3794 => "Move",
 			3795 => "Patrol",
 			3796 => "General Unload Unit Unload Unit",
-			4107 => "Effect Battery Overcharge",
-			4109 => "Effect Amorphous Armorcloud",
-			4111 => "Effect Shield Battery Recharge",
-			4119 => "Morph Baneling",
-			4122 => "Effect Oracle Cloak Field",
-			4440 => "Effect Energy Recharge",
-			4442 => "Effect Salvage",
-			4446 => "Effect Gather",
+			4111 => "Effect Amorphous Armorcloud",
+			4113 => "Effect Shield Battery Recharge",
+			4121 => "Morph Baneling",
+			4124 => "Effect Oracle Cloak Field",
+			4126 => "Effect Energy Recharge",
+			4128 => "Effect Salvage",
+			4132 => "Effect Gather",
 			_ => return write!(f, "{self:?}"),
 		};
 		write!(f, "{s}")

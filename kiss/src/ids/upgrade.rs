@@ -122,13 +122,13 @@ impl Upgrade {
 	pub const DIGGING_CLAWS: Self = Self(293);
 	pub const HURRICANE_THRUSTERS: Self = Self(296);
 	pub const TEMPEST_GROUND_ATTACK_UPGRADE: Self = Self(297);
-	pub const MICROBIAL_SHROUD: Self = Self(298);
-	pub const INTERFERENCE_MATRIX: Self = Self(299);
-	pub const SUNDERING_IMPACT: Self = Self(300);
-	pub const AMPLIFIED_SHIELDING: Self = Self(301);
-	pub const PSIONIC_AMPLIFIERS: Self = Self(302);
-	pub const SECRETED_COATING: Self = Self(303);
-	pub const FRENZY: Self = Self(305);
+	pub const FRENZY: Self = Self(298);
+	pub const MICROBIAL_SHROUD: Self = Self(299);
+	pub const INTERFERENCE_MATRIX: Self = Self(300);
+	pub const SUNDERING_IMPACT: Self = Self(301);
+	pub const AMPLIFIED_SHIELDING: Self = Self(302);
+	pub const PSIONIC_AMPLIFIERS: Self = Self(303);
+	pub const SECRETED_COATING: Self = Self(304);
 }
 impl fmt::Display for Upgrade {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -251,13 +251,13 @@ impl fmt::Display for Upgrade {
 			293 => "Digging Claws",
 			296 => "Hurricane Thrusters",
 			297 => "Tempest Ground Attack Upgrade",
-			298 => "Microbial Shroud",
-			299 => "Interference Matrix",
-			300 => "Sundering Impact",
-			301 => "Amplified Shielding",
-			302 => "Psionic Amplifiers",
-			303 => "Secreted Coating",
-			305 => "Frenzy",
+			298 => "Frenzy",
+			299 => "Microbial Shroud",
+			300 => "Interference Matrix",
+			301 => "Sundering Impact",
+			302 => "Amplified Shielding",
+			303 => "Psionic Amplifiers",
+			304 => "Secreted Coating",
 			_ => return write!(f, "{self:?}"),
 		};
 		write!(f, "{s}")

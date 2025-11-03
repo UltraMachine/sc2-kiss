@@ -484,26 +484,17 @@ impl UnitKind {
 	pub const INHIBITOR_ZONE_SMALL: Self = Self(1982);
 	pub const INHIBITOR_ZONE_MEDIUM: Self = Self(1983);
 	pub const INHIBITOR_ZONE_LARGE: Self = Self(1984);
-	pub const ACCELERATION_ZONE_SMALL: Self = Self(1985);
-	pub const ACCELERATION_ZONE_MEDIUM: Self = Self(1986);
-	pub const ACCELERATION_ZONE_LARGE: Self = Self(1987);
-	pub const ACCELERATION_ZONE_FLYING_SMALL: Self = Self(1988);
-	pub const ACCELERATION_ZONE_FLYING_MEDIUM: Self = Self(1989);
-	pub const ACCELERATION_ZONE_FLYING_LARGE: Self = Self(1990);
-	pub const INHIBITOR_ZONE_FLYING_SMALL: Self = Self(1991);
-	pub const INHIBITOR_ZONE_FLYING_MEDIUM: Self = Self(1992);
-	pub const INHIBITOR_ZONE_FLYING_LARGE: Self = Self(1993);
 	pub const ASSIMILATOR_RICH: Self = Self(1994);
 	pub const EXTRACTOR_RICH: Self = Self(1995);
 	pub const MINERAL_FIELD_450: Self = Self(1996);
 	pub const MINERAL_FIELD_OPAQUE: Self = Self(1997);
 	pub const MINERAL_FIELD_OPAQUE_900: Self = Self(1998);
-	pub const COLLAPSIBLE_ROCK_TOWER_DEBRIS_RAMP_LEFT_GREEN: Self = Self(2036);
-	pub const COLLAPSIBLE_ROCK_TOWER_DEBRIS_RAMP_RIGHT_GREEN: Self = Self(2037);
-	pub const COLLAPSIBLE_ROCK_TOWER_PUSH_UNIT_RAMP_LEFT_GREEN: Self = Self(2038);
-	pub const COLLAPSIBLE_ROCK_TOWER_PUSH_UNIT_RAMP_RIGHT_GREEN: Self = Self(2039);
-	pub const COLLAPSIBLE_ROCK_TOWER_RAMP_LEFT_GREEN: Self = Self(2040);
-	pub const COLLAPSIBLE_ROCK_TOWER_RAMP_RIGHT_GREEN: Self = Self(2041);
+	pub const COLLAPSIBLE_ROCK_TOWER_DEBRIS_RAMP_LEFT_GREEN: Self = Self(1999);
+	pub const COLLAPSIBLE_ROCK_TOWER_DEBRIS_RAMP_RIGHT_GREEN: Self = Self(2000);
+	pub const COLLAPSIBLE_ROCK_TOWER_PUSH_UNIT_RAMP_LEFT_GREEN: Self = Self(2001);
+	pub const COLLAPSIBLE_ROCK_TOWER_PUSH_UNIT_RAMP_RIGHT_GREEN: Self = Self(2002);
+	pub const COLLAPSIBLE_ROCK_TOWER_RAMP_LEFT_GREEN: Self = Self(2003);
+	pub const COLLAPSIBLE_ROCK_TOWER_RAMP_RIGHT_GREEN: Self = Self(2004);
 }
 impl fmt::Display for UnitKind {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -988,26 +979,17 @@ impl fmt::Display for UnitKind {
 			1982 => "Inhibitor Zone Small",
 			1983 => "Inhibitor Zone Medium",
 			1984 => "Inhibitor Zone Large",
-			1985 => "Acceleration Zone Small",
-			1986 => "Acceleration Zone Medium",
-			1987 => "Acceleration Zone Large",
-			1988 => "Acceleration Zone Flying Small",
-			1989 => "Acceleration Zone Flying Medium",
-			1990 => "Acceleration Zone Flying Large",
-			1991 => "Inhibitor Zone Flying Small",
-			1992 => "Inhibitor Zone Flying Medium",
-			1993 => "Inhibitor Zone Flying Large",
 			1994 => "Assimilator Rich",
 			1995 => "Extractor Rich",
 			1996 => "Mineral Field 450",
 			1997 => "Mineral Field Opaque",
 			1998 => "Mineral Field Opaque 900",
-			2036 => "Collapsible Rock Tower Debris Ramp Left Green",
-			2037 => "Collapsible Rock Tower Debris Ramp Right Green",
-			2038 => "Collapsible Rock Tower Push Unit Ramp Left Green",
-			2039 => "Collapsible Rock Tower Push Unit Ramp Right Green",
-			2040 => "Collapsible Rock Tower Ramp Left Green",
-			2041 => "Collapsible Rock Tower Ramp Right Green",
+			1999 => "Collapsible Rock Tower Debris Ramp Left Green",
+			2000 => "Collapsible Rock Tower Debris Ramp Right Green",
+			2001 => "Collapsible Rock Tower Push Unit Ramp Left Green",
+			2002 => "Collapsible Rock Tower Push Unit Ramp Right Green",
+			2003 => "Collapsible Rock Tower Ramp Left Green",
+			2004 => "Collapsible Rock Tower Ramp Right Green",
 			_ => return write!(f, "{self:?}"),
 		};
 		write!(f, "{s}")

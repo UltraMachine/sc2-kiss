@@ -1,5 +1,5 @@
 use super::Ability;
-use sc2_core::{request::DataFlags, Client, Result};
+use sc2_core::{Client, Result, request::data};
 use std::collections::HashMap;
 
 /// Remaps specific ability ids to their general versions
@@ -24,7 +24,7 @@ impl AbilityRemap {
 	}
 	/// Requests data from API and initializes the map with it
 	pub fn with_client(client: &mut Client) -> Result<Self> {
-		let res = client.data(DataFlags::ABILITIES)?;
+		let res = client.request(data().abilities(true))?;
 		Ok(Self::with_data(&res.data.abilities))
 	}
 	/// Returns generalized version of input ability, or itself if ability is not in the map
