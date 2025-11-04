@@ -142,11 +142,11 @@ impl From<Step> for Request {
 	}
 }
 impl MapResponse for Step {
-	type Data = sc2_prost::ResponseStep;
+	type Data = u32;
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::Step(res) => Ok(res),
+			ResponseVar::Step(res) => Ok(res.simulation_loop),
 			_ => Err(BadResError(Kind::Step, res.kind()).into()),
 		}
 	}
@@ -276,11 +276,11 @@ impl From<SaveReplay> for Request {
 	}
 }
 impl MapResponse for SaveReplay {
-	type Data = sc2_prost::ResponseSaveReplay;
+	type Data = Vec<u8>;
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::SaveReplay(res) => Ok(res),
+			ResponseVar::SaveReplay(res) => Ok(res.data),
 			_ => Err(BadResError(Kind::SaveReplay, res.kind()).into()),
 		}
 	}
@@ -306,11 +306,22 @@ impl From<MapCommand> for Request {
 	}
 }
 impl MapResponse for MapCommand {
-	type Data = sc2_prost::ResponseMapCommand;
+	type Data = ();
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::MapCommand(res) => Ok(res),
+			ResponseVar::MapCommand(res) => {
+				if res.error == 0 {
+					return Ok(());
+				}
+				Err(Sc2Error {
+					kind: Kind::MapCommand,
+					code: res.error,
+					err: format!("{:?}", res.error()),
+					desc: res.error_details,
+				}
+				.into())
+			}
 			_ => Err(BadResError(Kind::MapCommand, res.kind()).into()),
 		}
 	}

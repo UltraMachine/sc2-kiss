@@ -70,11 +70,22 @@ impl From<CreateGame> for Request {
 	}
 }
 impl MapResponse for CreateGame {
-	type Data = sc2_prost::ResponseCreateGame;
+	type Data = ();
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::CreateGame(res) => Ok(res),
+			ResponseVar::CreateGame(res) => {
+				if res.error == 0 {
+					return Ok(());
+				}
+				Err(Sc2Error {
+					kind: Kind::CreateGame,
+					code: res.error,
+					err: format!("{:?}", res.error()),
+					desc: res.error_details,
+				}
+				.into())
+			}
 			_ => Err(BadResError(Kind::CreateGame, res.kind()).into()),
 		}
 	}
@@ -193,11 +204,22 @@ impl From<JoinGame> for Request {
 	}
 }
 impl MapResponse for JoinGame {
-	type Data = sc2_prost::ResponseJoinGame;
+	type Data = PlayerId;
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::JoinGame(res) => Ok(res),
+			ResponseVar::JoinGame(res) => {
+				if res.error == 0 {
+					return Ok(PlayerId(res.player_id));
+				}
+				Err(Sc2Error {
+					kind: Kind::JoinGame,
+					code: res.error,
+					err: format!("{:?}", res.error()),
+					desc: res.error_details,
+				}
+				.into())
+			}
 			_ => Err(BadResError(Kind::JoinGame, res.kind()).into()),
 		}
 	}
@@ -310,11 +332,22 @@ impl From<StartReplay> for Request {
 	}
 }
 impl MapResponse for StartReplay {
-	type Data = sc2_prost::ResponseStartReplay;
+	type Data = ();
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::StartReplay(res) => Ok(res),
+			ResponseVar::StartReplay(res) => {
+				if res.error == 0 {
+					return Ok(());
+				}
+				Err(Sc2Error {
+					kind: Kind::StartReplay,
+					code: res.error,
+					err: format!("{:?}", res.error()),
+					desc: res.error_details,
+				}
+				.into())
+			}
 			_ => Err(BadResError(Kind::StartReplay, res.kind()).into()),
 		}
 	}
@@ -336,11 +369,22 @@ impl From<RestartGame> for Request {
 	}
 }
 impl MapResponse for RestartGame {
-	type Data = sc2_prost::ResponseRestartGame;
+	type Data = bool;
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::RestartGame(res) => Ok(res),
+			ResponseVar::RestartGame(res) => {
+				if res.error == 0 {
+					return Ok(res.need_hard_reset);
+				}
+				Err(Sc2Error {
+					kind: Kind::RestartGame,
+					code: res.error,
+					err: format!("{:?}", res.error()),
+					desc: res.error_details,
+				}
+				.into())
+			}
 			_ => Err(BadResError(Kind::RestartGame, res.kind()).into()),
 		}
 	}

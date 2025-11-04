@@ -95,9 +95,20 @@ impl KindOf for Response {
 #[derive(Debug, Error)]
 #[error("SC2 {kind:?} Error: `{err}`\n{desc}")]
 pub struct Sc2Error {
-	kind: Kind,
-	err: String,
-	desc: String,
+	pub(crate) kind: Kind,
+	pub(crate) code: i32,
+	pub(crate) err: String,
+	pub(crate) desc: String,
+}
+impl KindOf for Sc2Error {
+	fn kind(&self) -> Kind {
+		self.kind
+	}
+}
+impl Sc2Error {
+	pub fn code(&self) -> i32 {
+		self.code
+	}
 }
 
 /// Response type returned for all requests
@@ -115,6 +126,7 @@ impl TryFrom<Response> for Res {
 		let Some(data) = res.response else {
 			return Err(Sc2Error {
 				kind: Kind::None,
+				code: 0,
 				err: "Empty Response".into(),
 				desc: res.error.join("\n"),
 			});

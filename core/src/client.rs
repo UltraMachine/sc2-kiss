@@ -23,9 +23,6 @@ pub enum Error {
 	/// Response [`Kind`] doesn't match request [`Kind`]
 	#[error("{0}")]
 	BadRes(#[from] BadResError),
-	/// The server [`Status`] didn't change to one of the expected states after the request
-	#[error("Bad status: `{0:?}`, expected any of {1:?}")]
-	BadStatus(Status, Vec<Status>),
 	/// Response contains some errors
 	#[error("{0}")]
 	Sc2(#[from] Sc2Error),

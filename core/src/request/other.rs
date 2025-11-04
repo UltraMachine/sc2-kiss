@@ -35,7 +35,18 @@ impl MapResponse for ReplayInfo {
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::ReplayInfo(res) => Ok(res),
+			ResponseVar::ReplayInfo(res) => {
+				if res.error == 0 {
+					return Ok(res);
+				}
+				Err(Sc2Error {
+					kind: Kind::ReplayInfo,
+					code: res.error,
+					err: format!("{:?}", res.error()),
+					desc: res.error_details,
+				}
+				.into())
+			}
 			_ => Err(BadResError(Kind::ReplayInfo, res.kind()).into()),
 		}
 	}
@@ -97,11 +108,22 @@ impl From<SaveMap> for Request {
 	}
 }
 impl MapResponse for SaveMap {
-	type Data = sc2_prost::ResponseSaveMap;
+	type Data = ();
 
 	fn map_res(res: ResponseVar) -> Result<Self::Data> {
 		match res {
-			ResponseVar::SaveMap(res) => Ok(res),
+			ResponseVar::SaveMap(res) => {
+				if res.error == 0 {
+					return Ok(());
+				}
+				Err(Sc2Error {
+					kind: Kind::SaveMap,
+					code: res.error,
+					err: format!("{:?}", res.error()),
+					desc: String::new(),
+				}
+				.into())
+			}
 			_ => Err(BadResError(Kind::SaveMap, res.kind()).into()),
 		}
 	}
