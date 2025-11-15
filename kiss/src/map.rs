@@ -13,45 +13,59 @@ pub struct BitMap {
 }
 impl BitMap {
 	pub fn new(data: Vec<u8>, size: IVec2) -> Self {
-		assert!(size.x >= 0 && size.y >= 0);
-		assert_eq!((size.x * size.y + 7) as usize / 8, data.len());
+		let is_positive = size.x >= 0 && size.y >= 0;
+		assert!(is_positive, "map size can't be negative: got {size}");
+		let len_req = (size.x * size.y + 7) as usize / 8;
+		let len = data.len();
+		assert_eq!(len_req, len, "map size {size} doesn't match data len {len}");
 		Self { data, size }
 	}
 	pub fn size(&self) -> IVec2 {
 		self.size
 	}
 
-	fn idx(&self, pos: IVec2) -> (usize, usize) {
+	fn idx(&self, pos: IVec2) -> Option<(usize, usize)> {
+		if pos.cmplt(IVec2::ZERO).any() || pos.cmpge(self.size).any() {
+			return None;
+		}
 		let i = (pos.x + pos.y * self.size.x) as usize;
 		let byte = i / 8;
 		let shift = 7 - i % 8;
-		(byte, shift)
+		Some((byte, shift))
 	}
 
 	pub fn get(&self, pos: IVec2) -> bool {
-		let (byte, shift) = self.idx(pos);
-		self.data.get(byte).map_or(false, |b| b >> shift & 1 != 0)
+		let Some((byte, shift)) = self.idx(pos) else {
+			return false;
+		};
+		// SAFETY: pos is checked above to be in bounds
+		let b = unsafe { self.data.get_unchecked(byte) };
+		b >> shift & 1 != 0
 	}
 	pub fn set(&mut self, pos: IVec2, val: bool) {
-		let (byte, shift) = self.idx(pos);
-		if let Some(b) = self.data.get_mut(byte) {
-			if val {
-				*b |= 1 << shift;
-			} else {
-				*b &= !(1 << shift);
-			}
-		}
+		let Some((byte, shift)) = self.idx(pos) else {
+			return;
+		};
+		// SAFETY: pos is checked above to be in bounds
+		let b = unsafe { self.data.get_unchecked_mut(byte) };
+		*b = *b & !(1 << shift) | (val as u8) << shift;
 	}
 }
 impl From<ImageData> for BitMap {
 	fn from(im: ImageData) -> Self {
-		assert_eq!(im.bits_per_pixel, 1);
+		debug_assert_eq!(im.bits_per_pixel, 1);
 		Self::new(im.data, im.size.map_or(IVec2::ZERO, Into::into))
 	}
 }
 
-fn idx(pos: IVec2, w: i32) -> usize {
+fn idx_unchecked(pos: IVec2, w: i32) -> usize {
 	(pos.x + pos.y * w) as usize
+}
+fn idx(pos: IVec2, size: IVec2) -> Option<usize> {
+	if pos.cmplt(IVec2::ZERO).any() || pos.cmpge(size).any() {
+		return None;
+	}
+	Some(idx_unchecked(pos, size.x))
 }
 fn pos(i: usize, w: i32) -> IVec2 {
 	IVec2::new(i as i32 % w, i as i32 / w)
@@ -64,8 +78,11 @@ pub struct Map<T> {
 }
 impl<T> Map<T> {
 	pub fn new(data: Vec<T>, size: IVec2) -> Self {
-		assert!(size.x >= 0 && size.y >= 0);
-		assert_eq!((size.x * size.y) as usize, data.len());
+		let is_positive = size.x >= 0 && size.y >= 0;
+		assert!(is_positive, "map size can't be negative: got {size}");
+		let len_req = (size.x * size.y) as usize;
+		let len = data.len();
+		assert_eq!(len_req, len, "map size {size} doesn't match data len {len}");
 		Self { data, size }
 	}
 	pub fn size(&self) -> IVec2 {
@@ -73,10 +90,23 @@ impl<T> Map<T> {
 	}
 
 	pub fn get(&self, pos: IVec2) -> Option<&T> {
-		self.data.get(idx(pos, self.size.x))
+		self.data.get(idx(pos, self.size)?)
 	}
 	pub fn get_mut(&mut self, pos: IVec2) -> Option<&mut T> {
-		self.data.get_mut(idx(pos, self.size.x))
+		self.data.get_mut(idx(pos, self.size)?)
+	}
+
+	/// # Safety
+	/// Pos must be in map bounds
+	pub unsafe fn get_unchecked(&self, pos: IVec2) -> &T {
+		let i = idx_unchecked(pos, self.size.x);
+		unsafe { self.data.get_unchecked(i) }
+	}
+	/// # Safety
+	/// Pos must be in map bounds
+	pub unsafe fn get_unchecked_mut(&mut self, pos: IVec2) -> &mut T {
+		let i = idx_unchecked(pos, self.size.x);
+		unsafe { self.data.get_unchecked_mut(i) }
 	}
 
 	pub fn iter(&self) -> impl Iterator<Item = &T> {
@@ -102,18 +132,24 @@ impl<T> Map<T> {
 impl<T> Index<IVec2> for Map<T> {
 	type Output = T;
 	fn index(&self, pos: IVec2) -> &Self::Output {
-		&self.data[idx(pos, self.size.x)]
+		let size = self.size;
+		let i = idx(pos, size).unwrap_or_else(|| panic!("pos {pos} is out of map bounds {size}"));
+		// SAFETY: pos is checked above to be in bounds
+		unsafe { self.data.get_unchecked(i) }
 	}
 }
 impl<T> IndexMut<IVec2> for Map<T> {
 	fn index_mut(&mut self, pos: IVec2) -> &mut Self::Output {
-		&mut self.data[idx(pos, self.size.x)]
+		let size = self.size;
+		let i = idx(pos, size).unwrap_or_else(|| panic!("pos {pos} is out of map bounds {size}"));
+		// SAFETY: pos is checked above to be in bounds
+		unsafe { self.data.get_unchecked_mut(i) }
 	}
 }
 
 impl From<ImageData> for Map<u8> {
 	fn from(im: ImageData) -> Self {
-		assert_eq!(im.bits_per_pixel, 8);
+		debug_assert_eq!(im.bits_per_pixel, 8);
 		Self::new(im.data, im.size.map_or(IVec2::ZERO, Into::into))
 	}
 }
@@ -141,7 +177,7 @@ pub type HeightMap = Map<Height>;
 
 impl From<ImageData> for HeightMap {
 	fn from(im: ImageData) -> Self {
-		assert_eq!(im.bits_per_pixel, 8);
+		debug_assert_eq!(im.bits_per_pixel, 8);
 		let data = im.data.into_iter().map(Into::into).collect();
 		Self::new(data, im.size.map_or(IVec2::ZERO, Into::into))
 	}
@@ -176,7 +212,7 @@ pub type VisionMap = Map<Vision>;
 
 impl From<ImageData> for VisionMap {
 	fn from(im: ImageData) -> Self {
-		assert_eq!(im.bits_per_pixel, 8);
+		debug_assert_eq!(im.bits_per_pixel, 8);
 		let data = im.data.into_iter().map(Into::into).collect();
 		Self::new(data, im.size.map_or(IVec2::ZERO, Into::into))
 	}
