@@ -1,5 +1,7 @@
-use sc2_core::{request::JoinCfg, Client, Result};
-use std::net::{IpAddr, SocketAddr};
+#[cfg(feature = "ai-arena")]
+use sc2_core::request::setup::{JoinGame, join_game};
+use sc2_core::{Client, Result};
+use std::net::IpAddr;
 
 #[cfg(feature = "ai-arena")]
 #[allow(clippy::needless_doctest_main)]
@@ -97,12 +99,12 @@ pub struct AiArena {
 impl AiArena {
 	/// Connects to the SC2 API with parsed IP and port
 	pub fn connect(&self) -> Result<Client> {
-		Client::connect_addr(SocketAddr::new(self.ip, self.port))
+		Client::connect((self.ip, self.port))
 	}
-	/// Sets correct `server_ports` and `client_ports` in [`JoinCfg`]
-	pub fn set_ports(&self, join_cfg: &mut JoinCfg) {
+	pub fn join_game(&self) -> JoinGame {
 		let p = self.join_port;
-		join_cfg.server_ports = Some((p + 1, p + 2).into());
-		join_cfg.client_ports = vec![(p + 3, p + 4).into()];
+		join_game()
+			.server_ports((p + 1, p + 2))
+			.client_ports(vec![(p + 3, p + 4).into()])
 	}
 }
