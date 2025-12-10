@@ -11,6 +11,8 @@ pub trait UnitExt {
 	fn owner(&self) -> PlayerId;
 	#[cfg(feature = "ids")]
 	fn kind(&self) -> ids::UnitKind;
+	#[cfg(feature = "ids")]
+	fn buffs(&self) -> impl Iterator<Item = ids::Buff>;
 	#[cfg(feature = "linalg")]
 	fn pos2(&self) -> glam::Vec2;
 	#[cfg(feature = "linalg")]
@@ -31,6 +33,10 @@ impl UnitExt for RawUnit {
 	#[cfg(feature = "ids")]
 	fn kind(&self) -> ids::UnitKind {
 		self.unit_type.into()
+	}
+	#[cfg(feature = "ids")]
+	fn buffs(&self) -> impl Iterator<Item = ids::Buff> {
+		self.buff_ids.iter().map(|&b| b.into())
 	}
 	#[cfg(feature = "linalg")]
 	fn pos2(&self) -> glam::Vec2 {
