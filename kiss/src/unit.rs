@@ -1,7 +1,8 @@
 use super::*;
+use sc2_core::common::PlayerId;
 use std::fmt;
 
-use sc2_core::common::PlayerId;
+pub use action::unit as action;
 pub use sc2_prost::Unit as RawUnit;
 
 /// Methods for extracting various data from unit

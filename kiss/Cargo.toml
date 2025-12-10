@@ -18,10 +18,10 @@ clap = "4.5"
 camino = "1.1"
 
 [features]
-default = ["ids", "unit", "act", "chat", "map", "linalg", "game-loop", "debug", "ai-arena"]
+default = ["ids", "unit", "action", "chat", "map", "linalg", "game-loop", "debug", "ai-arena","cli-bpaf"]
 ids = []
 unit = []
-act = ["ids", "linalg", "unit"]
+action = ["ids", "linalg", "unit"]
 chat = []
 map = ["dep:bitflags", "linalg"]
 linalg = ["dep:glam", "sc2-prost/glam", "dep:ordered-float"]

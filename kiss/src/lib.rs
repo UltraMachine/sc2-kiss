@@ -22,7 +22,7 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 	- [x] Action construction and storage
 	- [x] Batch actions with same ability and target
 	- [ ] Return action results
-	- [ ] Support queuing multiple actions at once for a single unit
+	- [x] Support queuing multiple actions at once for a single unit
 - [ ] Map
 	- [x] Easy access to map data at any position
 	- [ ] Update map data to relevant
@@ -46,11 +46,8 @@ pub mod ids;
 #[cfg(feature = "unit")]
 pub mod unit;
 
-#[cfg(all(feature = "act"))]
-pub mod act;
-
-#[cfg(feature = "chat")]
-pub mod chat;
+#[cfg(feature = "action")]
+pub mod action;
 
 #[cfg(feature = "map")]
 pub mod map;
