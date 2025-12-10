@@ -1,5 +1,6 @@
 use super::*;
 use sc2_core::common::PlayerId;
+use sc2_prost::unit_order::Target as PbOrderTarget;
 use std::fmt;
 
 pub use action::unit as action;
@@ -83,5 +84,23 @@ impl From<u64> for Tag {
 impl From<Tag> for u64 {
 	fn from(tag: Tag) -> u64 {
 		tag.0
+	}
+}
+
+pub trait OrderExt {
+	fn ability(&self) -> ids::Ability;
+	fn target<P>(&self) -> Option<action::Target<P>>
+	where
+		PbOrderTarget: Into<action::Target<P>>;
+}
+impl OrderExt for sc2_prost::UnitOrder {
+	fn ability(&self) -> ids::Ability {
+		self.ability_id.into()
+	}
+	fn target<P>(&self) -> Option<action::Target<P>>
+	where
+		PbOrderTarget: Into<action::Target<P>>,
+	{
+		self.target.map(Into::into)
 	}
 }
