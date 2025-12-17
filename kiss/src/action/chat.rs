@@ -25,7 +25,7 @@ impl From<ChatMessage> for Action {
 #[macro_export]
 macro_rules! chat {
 	($($arg:tt)*) => {
-		$crate::chat::ChatMessage {
+		$crate::action::chat::ChatMessage {
 			message: format!($($arg)*),
 			private: false
 		}
@@ -34,7 +34,7 @@ macro_rules! chat {
 #[macro_export]
 macro_rules! chat_team {
 	($($arg:tt)*) => {
-		$crate::chat::ChatMessage {
+		$crate::action::chat::ChatMessage {
 			message: format!($($arg)*),
 			private: true
 		}
