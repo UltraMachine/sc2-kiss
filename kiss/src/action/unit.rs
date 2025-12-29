@@ -156,6 +156,9 @@ pub struct UnitAction<P> {
 }
 
 impl<P> UnitAction<P> {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn queue(self, queue: bool) -> UnitActions<P> {
 		UnitActions {
 			actions: vec![self],
@@ -164,6 +167,7 @@ impl<P> UnitAction<P> {
 	}
 }
 
+// note: derive forces unnecessary bound (P: Default)
 impl<P> Default for UnitAction<P> {
 	fn default() -> Self {
 		Self {
@@ -192,12 +196,16 @@ pub struct UnitActions<P> {
 	queue: bool,
 }
 impl<P> UnitActions<P> {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn queue(mut self, queue: bool) -> Self {
 		self.queue = queue;
 		self
 	}
 }
 
+// note: derive forces unnecessary bound (P: Default)
 impl<P> Default for UnitActions<P> {
 	fn default() -> Self {
 		Self {
@@ -238,6 +246,14 @@ impl<P> FromIterator<UnitAction<P>> for UnitActions<P> {
 		}
 	}
 }
+impl<P> Extend<UnitAction<P>> for UnitActions<P> {
+	fn extend<I>(&mut self, iter: I)
+	where
+		I: IntoIterator<Item = UnitAction<P>>,
+	{
+		self.actions.extend(iter);
+	}
+}
 
 #[macro_export]
 macro_rules! actions {
@@ -254,7 +270,13 @@ pub use actions;
 pub struct UnitsActions<P> {
 	actions: HashMap<Tag, UnitActions<P>>,
 }
+impl<P> UnitsActions<P> {
+	pub fn new() -> Self {
+		Self::default()
+	}
+}
 
+// note: derive forces unnecessary bound (P: Default)
 impl<P> Default for UnitsActions<P> {
 	fn default() -> Self {
 		Self {
@@ -276,6 +298,14 @@ impl<P> FromIterator<(Tag, UnitActions<P>)> for UnitsActions<P> {
 		Self {
 			actions: <_>::from_iter(iter),
 		}
+	}
+}
+impl<P> Extend<(Tag, UnitActions<P>)> for UnitsActions<P> {
+	fn extend<I>(&mut self, iter: I)
+	where
+		I: IntoIterator<Item = (Tag, UnitActions<P>)>,
+	{
+		self.actions.extend(iter);
 	}
 }
 
