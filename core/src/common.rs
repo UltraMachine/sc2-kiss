@@ -93,7 +93,7 @@ impl KindOf for Response {
 
 /// Describes some error returned in the response
 #[derive(Debug, Error)]
-#[error("SC2 {kind:?} Error: `{err}`\n{desc}")]
+#[error("SC2 {kind:?} Error: `{err}` {desc}")]
 pub struct Sc2Error {
 	pub(crate) kind: Kind,
 	pub(crate) code: i32,
