@@ -36,5 +36,6 @@ pub mod request;
 pub mod common;
 use common::{internal::*, *};
 
-pub use sc2_prost::{self, Request, Response, Status};
-pub use sc2_prost::{request::Request as RequestVar, response::Response as ResponseVar};
+pub use sc2_prost;
+use sc2_prost::{Request, Response};
+use sc2_prost::{request::Request as RequestVar, response::Response as ResponseVar};

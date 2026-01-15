@@ -1,4 +1,5 @@
 use super::*;
+use sc2_prost::Status;
 use std::fmt;
 
 /// Enum to identify kind of request/response
@@ -211,20 +212,18 @@ impl From<PlayerId> for u32 {
 #[error("Bad response: `{0:?}`, expected `{1:?}`")]
 pub struct BadResError(pub Kind, pub Kind);
 
-pub trait MapResponse {
-	type Data;
-	fn map_res(res: ResponseVar) -> Result<Self::Data>;
+pub trait ParseResponse {
+	type Output;
+	fn parse(res: Response) -> Result<Self::Output>;
 }
-impl MapResponse for Request {
-	type Data = ResponseVar;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
+impl ParseResponse for Request {
+	type Output = Response;
+
+	fn parse(res: Response) -> Result<Self::Output> {
 		Ok(res)
 	}
 }
-
-pub trait ToRequest: Into<Request> + MapResponse + KindOf {}
-impl<T: Into<Request> + MapResponse + KindOf> ToRequest for T {}
 
 pub trait RequestSetId {
 	fn id(self, id: u32) -> SetId<Self>
@@ -247,11 +246,11 @@ impl<R: Into<Request>> From<SetId<R>> for Request {
 		}
 	}
 }
-impl<R: MapResponse> MapResponse for SetId<R> {
-	type Data = R::Data;
+impl<R: ParseResponse> ParseResponse for SetId<R> {
+	type Output = R::Output;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		R::map_res(res)
+	fn parse(res: Response) -> Result<Self::Output> {
+		R::parse(res)
 	}
 }
 impl<R: KindOf> KindOf for SetId<R> {

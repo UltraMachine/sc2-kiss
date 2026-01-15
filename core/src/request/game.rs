@@ -11,14 +11,14 @@ impl From<GameInfo> for Request {
 		}
 	}
 }
-impl MapResponse for GameInfo {
-	type Data = sc2_prost::ResponseGameInfo;
+impl ParseResponse for GameInfo {
+	type Output = Res<sc2_prost::ResponseGameInfo>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::GameInfo)?.try_map(|res| match res {
 			ResponseVar::GameInfo(res) => Ok(res),
 			_ => Err(BadResError(Kind::GameInfo, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for GameInfo {
@@ -51,14 +51,14 @@ impl From<Observation> for Request {
 		}
 	}
 }
-impl MapResponse for Observation {
-	type Data = sc2_prost::ResponseObservation;
+impl ParseResponse for Observation {
+	type Output = Res<sc2_prost::ResponseObservation>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Observation)?.try_map(|res| match res {
 			ResponseVar::Observation(res) => Ok(res),
 			_ => Err(BadResError(Kind::Observation, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Observation {
@@ -81,14 +81,14 @@ impl From<Action> for Request {
 		}
 	}
 }
-impl MapResponse for Action {
-	type Data = sc2_prost::ResponseAction;
+impl ParseResponse for Action {
+	type Output = Res<sc2_prost::ResponseAction>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Action)?.try_map(|res| match res {
 			ResponseVar::Action(res) => Ok(res),
 			_ => Err(BadResError(Kind::Action, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Action {
@@ -111,14 +111,14 @@ impl From<ObserverAction> for Request {
 		}
 	}
 }
-impl MapResponse for ObserverAction {
-	type Data = ();
+impl ParseResponse for ObserverAction {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::ObsAction)?.try_map(|res| match res {
 			ResponseVar::ObsAction(_) => Ok(()),
 			_ => Err(BadResError(Kind::ObsAction, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for ObserverAction {
@@ -141,14 +141,14 @@ impl From<Step> for Request {
 		}
 	}
 }
-impl MapResponse for Step {
-	type Data = u32;
+impl ParseResponse for Step {
+	type Output = Res<u32>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Step)?.try_map(|res| match res {
 			ResponseVar::Step(res) => Ok(res.simulation_loop),
 			_ => Err(BadResError(Kind::Step, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Step {
@@ -201,14 +201,14 @@ impl From<Data> for Request {
 		}
 	}
 }
-impl MapResponse for Data {
-	type Data = sc2_prost::ResponseData;
+impl ParseResponse for Data {
+	type Output = Res<sc2_prost::ResponseData>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Data)?.try_map(|res| match res {
 			ResponseVar::Data(res) => Ok(res),
 			_ => Err(BadResError(Kind::Data, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Data {
@@ -249,14 +249,14 @@ impl From<Query> for Request {
 		}
 	}
 }
-impl MapResponse for Query {
-	type Data = sc2_prost::ResponseQuery;
+impl ParseResponse for Query {
+	type Output = Res<sc2_prost::ResponseQuery>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Query)?.try_map(|res| match res {
 			ResponseVar::Query(res) => Ok(res),
 			_ => Err(BadResError(Kind::Query, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Query {
@@ -275,14 +275,14 @@ impl From<SaveReplay> for Request {
 		}
 	}
 }
-impl MapResponse for SaveReplay {
-	type Data = Vec<u8>;
+impl ParseResponse for SaveReplay {
+	type Output = Res<Vec<u8>>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::SaveReplay)?.try_map(|res| match res {
 			ResponseVar::SaveReplay(res) => Ok(res.data),
 			_ => Err(BadResError(Kind::SaveReplay, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for SaveReplay {
@@ -305,11 +305,11 @@ impl From<MapCommand> for Request {
 		}
 	}
 }
-impl MapResponse for MapCommand {
-	type Data = ();
+impl ParseResponse for MapCommand {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::MapCommand)?.try_map(|res| match res {
 			ResponseVar::MapCommand(res) => {
 				if res.error == 0 {
 					return Ok(());
@@ -323,7 +323,7 @@ impl MapResponse for MapCommand {
 				.into())
 			}
 			_ => Err(BadResError(Kind::MapCommand, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for MapCommand {

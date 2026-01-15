@@ -147,26 +147,32 @@ impl Client {
 	println!("Our Player Id: {}", res.data.player_id);
 	```
 	*/
-	pub fn request<R: ToRequest>(&mut self, request: R) -> Result<Res<R::Data>> {
-		fn _request(client: &mut Client, request: Request, kind: Kind) -> Result<Res> {
-			client.send(request)?;
-			let response = client.read()?;
-			convert_res(response, kind)
-		}
-		let kind = request.kind();
-		_request(self, request.into(), kind).try_map_res(R::map_res)
+	pub fn request<R: Into<Request> + ParseResponse>(&mut self, request: R) -> Result<R::Output> {
+		self.send(request)?;
+		self.read::<R>()
 	}
 
-	pub fn read(&mut self) -> Result<Response> {
-		res_from_msg(self.ws.read()?)
+	fn _read(&mut self) -> Result<Response> {
+		let msg = self.ws.read()?;
+		res_from_msg(msg)
 	}
-	pub fn send(&mut self, request: Request) -> Result {
-		Ok(self.ws.send(req_into_msg(request))?)
+	pub fn read<R: ParseResponse>(&mut self) -> Result<R::Output> {
+		R::parse(self._read()?)
 	}
 
-	pub fn write(&mut self, request: Request) -> Result {
-		Ok(self.ws.write(req_into_msg(request))?)
+	pub fn send(&mut self, request: impl Into<Request>) -> Result {
+		self.write(request)?;
+		self.flush()
 	}
+
+	fn _write(&mut self, req: Request) -> Result {
+		let msg = req_into_msg(req);
+		Ok(self.ws.write(msg)?)
+	}
+	pub fn write(&mut self, request: impl Into<Request>) -> Result {
+		self._write(request.into())
+	}
+
 	pub fn flush(&mut self) -> Result {
 		Ok(self.ws.flush()?)
 	}

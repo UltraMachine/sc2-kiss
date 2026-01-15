@@ -69,11 +69,11 @@ impl From<CreateGame> for Request {
 		}
 	}
 }
-impl MapResponse for CreateGame {
-	type Data = ();
+impl ParseResponse for CreateGame {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::CreateGame)?.try_map(|res| match res {
 			ResponseVar::CreateGame(res) => {
 				if res.error == 0 {
 					return Ok(());
@@ -87,7 +87,7 @@ impl MapResponse for CreateGame {
 				.into())
 			}
 			_ => Err(BadResError(Kind::CreateGame, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for CreateGame {
@@ -203,11 +203,11 @@ impl From<JoinGame> for Request {
 		}
 	}
 }
-impl MapResponse for JoinGame {
-	type Data = PlayerId;
+impl ParseResponse for JoinGame {
+	type Output = Res<PlayerId>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::JoinGame)?.try_map(|res| match res {
 			ResponseVar::JoinGame(res) => {
 				if res.error == 0 {
 					return Ok(PlayerId(res.player_id));
@@ -221,7 +221,7 @@ impl MapResponse for JoinGame {
 				.into())
 			}
 			_ => Err(BadResError(Kind::JoinGame, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for JoinGame {
@@ -331,11 +331,11 @@ impl From<StartReplay> for Request {
 		}
 	}
 }
-impl MapResponse for StartReplay {
-	type Data = ();
+impl ParseResponse for StartReplay {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::StartReplay)?.try_map(|res| match res {
 			ResponseVar::StartReplay(res) => {
 				if res.error == 0 {
 					return Ok(());
@@ -349,7 +349,7 @@ impl MapResponse for StartReplay {
 				.into())
 			}
 			_ => Err(BadResError(Kind::StartReplay, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for StartReplay {
@@ -368,11 +368,11 @@ impl From<RestartGame> for Request {
 		}
 	}
 }
-impl MapResponse for RestartGame {
-	type Data = bool;
+impl ParseResponse for RestartGame {
+	type Output = Res<bool>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::RestartGame)?.try_map(|res| match res {
 			ResponseVar::RestartGame(res) => {
 				if res.error == 0 {
 					return Ok(res.need_hard_reset);
@@ -386,7 +386,7 @@ impl MapResponse for RestartGame {
 				.into())
 			}
 			_ => Err(BadResError(Kind::RestartGame, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for RestartGame {
@@ -405,14 +405,14 @@ impl From<LeaveGame> for Request {
 		}
 	}
 }
-impl MapResponse for LeaveGame {
-	type Data = ();
+impl ParseResponse for LeaveGame {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::LeaveGame)?.try_map(|res| match res {
 			ResponseVar::LeaveGame(_) => Ok(()),
 			_ => Err(BadResError(Kind::LeaveGame, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for LeaveGame {
@@ -431,14 +431,14 @@ impl From<QuickSave> for Request {
 		}
 	}
 }
-impl MapResponse for QuickSave {
-	type Data = ();
+impl ParseResponse for QuickSave {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::QuickSave)?.try_map(|res| match res {
 			ResponseVar::QuickSave(_) => Ok(()),
 			_ => Err(BadResError(Kind::QuickSave, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for QuickSave {
@@ -457,14 +457,14 @@ impl From<QuickLoad> for Request {
 		}
 	}
 }
-impl MapResponse for QuickLoad {
-	type Data = ();
+impl ParseResponse for QuickLoad {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::QuickLoad)?.try_map(|res| match res {
 			ResponseVar::QuickLoad(_) => Ok(()),
 			_ => Err(BadResError(Kind::QuickLoad, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for QuickLoad {
@@ -483,14 +483,14 @@ impl From<Quit> for Request {
 		}
 	}
 }
-impl MapResponse for Quit {
-	type Data = ();
+impl ParseResponse for Quit {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Quit)?.try_map(|res| match res {
 			ResponseVar::Quit(_) => Ok(()),
 			_ => Err(BadResError(Kind::Quit, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Quit {

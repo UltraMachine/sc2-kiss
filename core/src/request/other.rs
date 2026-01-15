@@ -30,11 +30,11 @@ impl From<ReplayInfo> for Request {
 		}
 	}
 }
-impl MapResponse for ReplayInfo {
-	type Data = sc2_prost::ResponseReplayInfo;
+impl ParseResponse for ReplayInfo {
+	type Output = Res<sc2_prost::ResponseReplayInfo>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::ReplayInfo)?.try_map(|res| match res {
 			ResponseVar::ReplayInfo(res) => {
 				if res.error == 0 {
 					return Ok(res);
@@ -48,7 +48,7 @@ impl MapResponse for ReplayInfo {
 				.into())
 			}
 			_ => Err(BadResError(Kind::ReplayInfo, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for ReplayInfo {
@@ -67,14 +67,14 @@ impl From<AvailableMaps> for Request {
 		}
 	}
 }
-impl MapResponse for AvailableMaps {
-	type Data = sc2_prost::ResponseAvailableMaps;
+impl ParseResponse for AvailableMaps {
+	type Output = Res<sc2_prost::ResponseAvailableMaps>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::AvailableMaps)?.try_map(|res| match res {
 			ResponseVar::AvailableMaps(res) => Ok(res),
 			_ => Err(BadResError(Kind::AvailableMaps, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for AvailableMaps {
@@ -107,11 +107,11 @@ impl From<SaveMap> for Request {
 		}
 	}
 }
-impl MapResponse for SaveMap {
-	type Data = ();
+impl ParseResponse for SaveMap {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::SaveMap)?.try_map(|res| match res {
 			ResponseVar::SaveMap(res) => {
 				if res.error == 0 {
 					return Ok(());
@@ -125,7 +125,7 @@ impl MapResponse for SaveMap {
 				.into())
 			}
 			_ => Err(BadResError(Kind::SaveMap, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for SaveMap {
@@ -144,14 +144,14 @@ impl From<Ping> for Request {
 		}
 	}
 }
-impl MapResponse for Ping {
-	type Data = sc2_prost::ResponsePing;
+impl ParseResponse for Ping {
+	type Output = Res<sc2_prost::ResponsePing>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Ping)?.try_map(|res| match res {
 			ResponseVar::Ping(res) => Ok(res),
 			_ => Err(BadResError(Kind::Ping, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Ping {
@@ -174,14 +174,14 @@ impl From<Debug> for Request {
 		}
 	}
 }
-impl MapResponse for Debug {
-	type Data = ();
+impl ParseResponse for Debug {
+	type Output = Res<()>;
 
-	fn map_res(res: ResponseVar) -> Result<Self::Data> {
-		match res {
+	fn parse(res: Response) -> Result<Self::Output> {
+		convert_res(res, Kind::Debug)?.try_map(|res| match res {
 			ResponseVar::Debug(_) => Ok(()),
 			_ => Err(BadResError(Kind::Debug, res.kind()).into()),
-		}
+		})
 	}
 }
 impl KindOf for Debug {
