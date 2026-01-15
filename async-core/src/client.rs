@@ -1,12 +1,10 @@
 use super::*;
 use futures_util::{SinkExt, StreamExt};
-use std::{io, net::ToSocketAddrs};
-use tokio_tungstenite::{
-	MaybeTlsStream, WebSocketStream,
-	tungstenite::{Error as WsError, client::IntoClientRequest, http},
-};
+use sc2_prost::{Request, Response};
+use tokio::net::{TcpStream, ToSocketAddrs};
+use tokio_tungstenite::{WebSocketStream, client_async, tungstenite::Error as WsError};
 
-type WebSocket = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
+type WebSocket = WebSocketStream<TcpStream>;
 
 #[doc(no_inline)]
 pub use sc2_core::{Error, Result};
@@ -26,16 +24,14 @@ println!("{res:?}");
 #[derive(Debug)]
 pub struct Client {
 	ws: WebSocket,
-	status: Status,
 }
 /// Core methods
 impl Client {
-	async fn connect_imp(http_req: http::Request<()>) -> Result<Self> {
-		let (ws, _) = tokio_tungstenite::connect_async(http_req).await?;
-		Ok(Self {
-			ws,
-			status: Status::Unset,
-		})
+	async fn _connect(stream: TcpStream) -> Result<Self> {
+		stream.set_nodelay(true)?;
+		let req = format!("ws://{}/sc2api", stream.peer_addr()?);
+		let (ws, _) = client_async(req, stream).await?;
+		Ok(Self { ws })
 	}
 
 	/**
@@ -54,22 +50,7 @@ impl Client {
 	```
 	*/
 	pub async fn connect(addr: impl ToSocketAddrs) -> Result<Self> {
-		let addrs = addr.to_socket_addrs().map_err(WsError::Io)?;
-		let mut last_err = None;
-		for addr in addrs {
-			let http_req = format!("ws://{addr}/sc2api").into_client_request()?;
-
-			match Self::connect_imp(http_req).await {
-				ok @ Ok(_) => return ok,
-				Err(e) => last_err = Some(e),
-			}
-		}
-		Err(last_err.unwrap_or_else(|| {
-			Error::WebSocket(WsError::Io(io::Error::new(
-				io::ErrorKind::InvalidInput,
-				"could not resolve to any addresses",
-			)))
-		}))
+		Self::_connect(TcpStream::connect(addr).await?).await
 	}
 
 	/**
@@ -77,32 +58,31 @@ impl Client {
 
 	# Errors
 
-	This method errors in the following cases:
+	This method can return error in the following cases:
 	- WebSocket failure
 	- Failed to decode response
 	- Response [`Kind`] doesn't match request [`Kind`]
-	- The server [`Status`] didn't change to one of the expected states after the request
 	- Response contains any errors
 
 	# Examples
 	```no_run
-	use sc2_async_core::{Req, ResVar};
+	use sc2_async_core::request::Ping;
 
-	let res = client.request(Req::Ping(Default::default())).await?;
+	let res = client.request(Ping).await?;
 	println!("Server Status: {:?}", res.status);
-	let ResVar::Ping(data) = res.data else { unreachable!() };
+	let data = res.data;
 	println!("Game Version: {}", data.game_version);
 	println!("Data Version: {}", data.data_version);
 	println!("Data Build: {}", data.data_build);
 	println!("Base Build: {}", data.base_build);
 	```
 	```no_run
-	use sc2_async_core::{Req, ResVar};
+	use sc2_async_core::request::AvailableMaps;
 
-	let res = client.request(Req::AvailableMaps(Default::default())).await?;
+	let res = client.request(AvailableMaps).await?;
 	println!("Server Status: {:?}", res.status);
-	let ResVar::AvailableMaps(data) = res.data else { unreachable!() };
 
+	let data = res.data;
 	println!("Local maps:");
 	for map in data.local_map_paths {
 		println!("- {map}");
@@ -113,52 +93,68 @@ impl Client {
 	}
 	```
 	```no_run
-	use sc2_async_core::{Req, ResVar};
-
-	let req = sc2_prost::RequestJoinGame {
-		// Set your options here
-		..Default::default()
+	use sc2_async_core::{
+		request::{interface, join_game},
+		sc2_prost::Race,
 	};
-	let res = client.request(Req::JoinGame(req)).await?;
+
+	let req = join_game()
+		.participant(Race::Random)
+		.name("Bot".to_string())
+		.interface(
+			interface()
+				.raw(true)
+				.cloaked(true)
+				.burrowed(true)
+				.crop_raw(true),
+		);
+	let res = client.request(req).await?;
 	println!("Server Status: {:?}", res.status);
-	let ResVar::JoinGame(data) = res.data else { unreachable!() };
-	println!("Our Player Id: {}", data.player_id);
+	println!("Our Player Id: {}", res.data.player_id);
 	```
 	*/
-	pub async fn request(&mut self, req: Req) -> Result<Res> {
-		let req_kind = req.kind();
-		self.send(req).await?;
-		self.read(req_kind).await
+	pub async fn request<R>(&mut self, request: R) -> Result<R::Output>
+	where
+		R: Into<Request> + ParseResponse,
+	{
+		self.send(request).await?;
+		self.read::<R>().await
 	}
 
-	pub async fn send(&mut self, req: Req) -> Result {
-		self.ws.send(req_into_msg(req)).await.map_err(Into::into)
-	}
-	pub async fn read(&mut self, expect_kind: Kind) -> Result<Res> {
+	async fn _read(&mut self) -> Result<Response> {
 		let Some(msg) = self.ws.next().await else {
-			return Err(Error::WebSocket(WsError::AlreadyClosed));
+			return Err(WsError::AlreadyClosed.into());
 		};
-		let res = res_from_msg(msg?, expect_kind)?;
-		check_res(res, expect_kind, &mut self.status)
+		res_from_msg(msg?)
+	}
+	pub async fn read<R: ParseResponse>(&mut self) -> Result<R::Output> {
+		R::parse(self._read().await?)
 	}
 
-	/**
-	Returns current server [`Status`].
+	pub async fn send(&mut self, request: impl Into<Request>) -> Result {
+		self.write(request).await?;
+		self.flush().await
+	}
 
-	# Examples
-	```no_run
-	use sc2_async_core::{Req, Status};
+	async fn _write(&mut self, req: Request) -> Result {
+		let msg = req_into_msg(req);
+		Ok(self.ws.feed(msg).await?)
+	}
+	pub async fn write(&mut self, request: impl Into<Request>) -> Result {
+		self._write(request.into()).await
+	}
 
-	assert_eq!(client.status(), Status::Unset);
+	pub async fn flush(&mut self) -> Result {
+		Ok(self.ws.flush().await?)
+	}
 
-	let res = client.request(Req::Ping(Default::default())).await?;
-	println!("Server Status: {:?}", res.status);
-
-	assert_eq!(client.status(), Status::Launched);
-	assert_eq!(client.status(), res.status);
-	```
-	*/
-	pub fn status(&self) -> Status {
-		self.status
+	pub fn inner(&self) -> &WebSocket {
+		&self.ws
+	}
+	pub fn inner_mut(&mut self) -> &mut WebSocket {
+		&mut self.ws
+	}
+	pub fn into_inner(self) -> WebSocket {
+		self.ws
 	}
 }

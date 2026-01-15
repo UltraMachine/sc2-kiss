@@ -11,11 +11,11 @@ use sc2_core::common::{internal::*, *};
 
 pub use sc2_prost;
 
-pub use sc2_core::{Launcher, Req, ResVar, Status, common, instance};
+pub use sc2_core::common;
 
 pub mod client;
 #[doc(no_inline)]
 pub use client::{Client, Error, Result};
 
 #[cfg(feature = "request-helpers")]
-pub mod request;
+pub use sc2_core::request;

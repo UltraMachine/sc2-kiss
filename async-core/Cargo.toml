@@ -5,9 +5,9 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-sc2-core = { version = "0.1.0", path = "../core" }
+sc2-core = { version = "0.1.0", path = "../core", default-features = false }
 sc2-prost = { version = "0.1.0", path = "../pb/prost" }
-tokio-tungstenite = "0.26"
+tokio-tungstenite = "0.28"
 tokio = { version = "1.44", features = ["net"] }
 futures-util = "0.3"
 
@@ -15,4 +15,4 @@ futures-util = "0.3"
 
 [features]
 default = ["request-helpers"]
-request-helpers = ["sc2-core/request-helpers"]
+request-helpers = []
