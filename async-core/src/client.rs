@@ -14,10 +14,10 @@ Asynchronous client interface to connect and communicate with SC2 instance.
 
 Basic usage:
 ```no_run
-use sc2_async_core::{Client, Req};
+use sc2_async_core::{Client, request::Ping};
 
 let mut client = Client::connect("localhost:5000").await?;
-let res = client.request(Req::Ping(Default::default())).await?;
+let res = client.request(Ping).await?;
 println!("{res:?}");
 ```
 */

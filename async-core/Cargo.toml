@@ -14,5 +14,8 @@ futures-util = "0.3"
 [dev-dependencies]
 
 [features]
-default = ["request-helpers"]
-request-helpers = []
+default = ["client", "request-helpers"]
+client = ["sc2-core/client"]
+request-helpers = ["sc2-core/request-helpers"]
+launcher = ["sc2-core/launcher"]
+server = ["sc2-core/server"]
