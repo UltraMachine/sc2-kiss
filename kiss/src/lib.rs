@@ -40,6 +40,9 @@ Stupidly simple Rust framework for Starcraft 2 AI bots
 pub use sc2_core;
 pub use sc2_prost;
 
+#[cfg(feature = "bot")]
+pub mod bot;
+
 #[cfg(feature = "ids")]
 pub mod ids;
 
@@ -54,9 +57,6 @@ pub mod map;
 
 #[cfg(feature = "linalg")]
 pub mod linalg;
-
-#[cfg(feature = "game-loop")]
-pub mod game_loop;
 
 #[cfg(feature = "debug")]
 pub mod debug;
