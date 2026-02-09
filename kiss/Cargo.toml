@@ -14,11 +14,9 @@ bpaf = { version = "0.9", features = ["derive"], optional = true }
 bitflags = { version = "2.8", optional = true }
 
 [dev-dependencies]
-clap = "4.5"
-camino = "1.1"
 
 [features]
-default = ["ids", "unit", "action", "chat", "map", "linalg", "game-loop", "debug", "ai-arena","cli-bpaf"]
+default = ["ids", "unit", "action", "chat", "map", "linalg", "game-loop", "debug", "ai-arena", "cli-bpaf", "time"]
 ids = []
 unit = []
 action = ["ids", "linalg", "unit"]
@@ -31,3 +29,4 @@ cli = []
 cli-clap = ["dep:clap", "cli"]
 cli-bpaf = ["dep:bpaf", "cli"]
 ai-arena = ["cli"]
+time = []

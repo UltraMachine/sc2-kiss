@@ -63,3 +63,6 @@ pub mod debug;
 
 #[cfg(feature = "cli")]
 pub mod cli;
+
+#[cfg(feature = "time")]
+pub mod time;
