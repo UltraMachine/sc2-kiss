@@ -7,14 +7,8 @@ Provides basic functionality to connect and communicate with SC2 instances.
 Start by looking into [`Client`] documentation.
 
 ## Todo:
-- [x] Client connecting and request sending
-- [x] Check response kind/status/errors
-- [x] Optional methods for easier request making
-- [x] SC2 Instance launching
-- [ ] Proxy between client and sc2
-- [x] Split send and recieve
-- [ ] Update async
-- [x] Auto locate game dir
+- [ ] Add better documentation
+- [ ] Add more examples
 */
 
 use thiserror::Error;

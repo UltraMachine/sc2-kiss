@@ -1,4 +1,5 @@
 use super::*;
+use sc2_prost::{Action as PbAction, ObserverAction as PbObsAction};
 use sc2_prost::{RequestAction, RequestMapCommand, RequestObserverAction, RequestStep};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -34,6 +35,9 @@ pub fn observation() -> Observation {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Observation(sc2_prost::RequestObservation);
 impl Observation {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn disable_fog(mut self, value: bool) -> Self {
 		self.0.disable_fog = value;
 		self
@@ -67,12 +71,32 @@ impl KindOf for Observation {
 	}
 }
 
-pub fn action(actions: Vec<sc2_prost::Action>) -> Action {
-	Action(RequestAction { actions })
+pub fn action(actions: Vec<PbAction>) -> Action {
+	actions.into()
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Action(RequestAction);
+impl Action {
+	pub fn new() -> Self {
+		Self::default()
+	}
+}
+impl From<Vec<PbAction>> for Action {
+	fn from(actions: Vec<PbAction>) -> Self {
+		Self(RequestAction { actions })
+	}
+}
+impl FromIterator<PbAction> for Action {
+	fn from_iter<I: IntoIterator<Item = PbAction>>(iter: I) -> Self {
+		iter.into_iter().collect::<Vec<_>>().into()
+	}
+}
+impl Extend<PbAction> for Action {
+	fn extend<I: IntoIterator<Item = PbAction>>(&mut self, iter: I) {
+		self.0.actions.extend(iter);
+	}
+}
 impl From<Action> for Request {
 	fn from(r: Action) -> Self {
 		Self {
@@ -97,12 +121,32 @@ impl KindOf for Action {
 	}
 }
 
-pub fn observer_action(actions: Vec<sc2_prost::ObserverAction>) -> ObserverAction {
-	ObserverAction(RequestObserverAction { actions })
+pub fn observer_action(actions: Vec<PbObsAction>) -> ObserverAction {
+	actions.into()
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct ObserverAction(RequestObserverAction);
+impl ObserverAction {
+	pub fn new() -> Self {
+		Self::default()
+	}
+}
+impl From<Vec<PbObsAction>> for ObserverAction {
+	fn from(actions: Vec<PbObsAction>) -> Self {
+		Self(RequestObserverAction { actions })
+	}
+}
+impl FromIterator<PbObsAction> for ObserverAction {
+	fn from_iter<I: IntoIterator<Item = PbObsAction>>(iter: I) -> Self {
+		iter.into_iter().collect::<Vec<_>>().into()
+	}
+}
+impl Extend<PbObsAction> for ObserverAction {
+	fn extend<I: IntoIterator<Item = PbObsAction>>(&mut self, iter: I) {
+		self.0.actions.extend(iter);
+	}
+}
 impl From<ObserverAction> for Request {
 	fn from(r: ObserverAction) -> Self {
 		Self {
@@ -128,16 +172,21 @@ impl KindOf for ObserverAction {
 }
 
 pub fn step(count: u32) -> Step {
-	Step(RequestStep { count })
+	count.into()
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Step(RequestStep);
+pub struct Step(pub u32);
+impl From<u32> for Step {
+	fn from(count: u32) -> Self {
+		Step(count)
+	}
+}
 impl From<Step> for Request {
 	fn from(r: Step) -> Self {
 		Self {
 			id: 0,
-			request: Some(RequestVar::Step(r.0)),
+			request: Some(RequestVar::Step(RequestStep { count: r.0 })),
 		}
 	}
 }
@@ -164,6 +213,9 @@ pub fn data() -> Data {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Data(sc2_prost::RequestData);
 impl Data {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn abilities(mut self, value: bool) -> Self {
 		self.0.ability_id = value;
 		self
@@ -224,6 +276,9 @@ pub fn query() -> Query {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Query(sc2_prost::RequestQuery);
 impl Query {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn pathing(mut self, pathing: Vec<sc2_prost::RequestQueryPathing>) -> Self {
 		self.0.pathing = pathing;
 		self
@@ -292,11 +347,16 @@ impl KindOf for SaveReplay {
 }
 
 pub fn map_command(cmd: String) -> MapCommand {
-	MapCommand(RequestMapCommand { trigger_cmd: cmd })
+	cmd.into()
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct MapCommand(RequestMapCommand);
+impl From<String> for MapCommand {
+	fn from(cmd: String) -> Self {
+		MapCommand(RequestMapCommand { trigger_cmd: cmd })
+	}
+}
 impl From<MapCommand> for Request {
 	fn from(r: MapCommand) -> Self {
 		Self {

@@ -1,5 +1,5 @@
 use super::*;
-use sc2_prost::{RequestDebug, request_replay_info::Replay};
+use sc2_prost::{DebugCommand, RequestDebug, request_replay_info::Replay};
 
 pub fn replay_info() -> ReplayInfo {
 	Default::default()
@@ -8,6 +8,9 @@ pub fn replay_info() -> ReplayInfo {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ReplayInfo(sc2_prost::RequestReplayInfo);
 impl ReplayInfo {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn replay(mut self, path: Utf8PathBuf) -> Self {
 		self.0.replay = Some(Replay::ReplayPath(path.into()));
 		self
@@ -90,6 +93,9 @@ pub fn save_map() -> SaveMap {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct SaveMap(sc2_prost::RequestSaveMap);
 impl SaveMap {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn path(mut self, path: Utf8PathBuf) -> Self {
 		self.0.map_path = path.into();
 		self
@@ -160,12 +166,32 @@ impl KindOf for Ping {
 	}
 }
 
-pub fn debug(debug: Vec<sc2_prost::DebugCommand>) -> Debug {
-	Debug(RequestDebug { debug })
+pub fn debug(debug: Vec<DebugCommand>) -> Debug {
+	debug.into()
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Debug(RequestDebug);
+impl Debug {
+	pub fn new() -> Self {
+		Self::default()
+	}
+}
+impl From<Vec<DebugCommand>> for Debug {
+	fn from(debug: Vec<DebugCommand>) -> Self {
+		Self(RequestDebug { debug })
+	}
+}
+impl FromIterator<DebugCommand> for Debug {
+	fn from_iter<I: IntoIterator<Item = DebugCommand>>(iter: I) -> Self {
+		iter.into_iter().collect::<Vec<_>>().into()
+	}
+}
+impl Extend<DebugCommand> for Debug {
+	fn extend<I: IntoIterator<Item = DebugCommand>>(&mut self, iter: I) {
+		self.0.debug.extend(iter);
+	}
+}
 impl From<Debug> for Request {
 	fn from(r: Debug) -> Self {
 		Self {

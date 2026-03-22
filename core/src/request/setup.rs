@@ -12,6 +12,9 @@ pub fn create_game() -> CreateGame {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct CreateGame(sc2_prost::RequestCreateGame);
 impl CreateGame {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn map(mut self, path: Utf8PathBuf) -> Self {
 		if let Some(Map::LocalMap(LocalMap { map_path, .. })) = &mut self.0.map {
 			*map_path = path.into();
@@ -112,18 +115,15 @@ pub const OBSERVER: PlayerSetup = PlayerSetup {
 };
 
 pub fn computer() -> Computer {
-	Computer(PlayerSetup {
-		r#type: PlayerType::Computer as i32,
-		race: 0,
-		difficulty: 0,
-		player_name: String::new(),
-		ai_build: 0,
-	})
+	Default::default()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Computer(PlayerSetup);
 impl Computer {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn setup(self) -> PlayerSetup {
 		self.0
 	}
@@ -147,7 +147,13 @@ impl Computer {
 }
 impl Default for Computer {
 	fn default() -> Self {
-		computer()
+		Self(PlayerSetup {
+			r#type: PlayerType::Computer as i32,
+			race: 0,
+			difficulty: 0,
+			player_name: String::new(),
+			ai_build: 0,
+		})
 	}
 }
 impl From<Computer> for PlayerSetup {
@@ -163,6 +169,9 @@ pub fn join_game() -> JoinGame {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct JoinGame(sc2_prost::RequestJoinGame);
 impl JoinGame {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn participant(mut self, race: Race) -> Self {
 		self.0.participation = Some(Participation::Race(race as i32));
 		self
@@ -237,6 +246,9 @@ pub fn interface() -> Interface {
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Interface(InterfaceOptions);
 impl Interface {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn raw(mut self, value: bool) -> Self {
 		self.0.raw = value;
 		self
@@ -285,9 +297,16 @@ pub fn ports(game: u16, base: u16) -> PortSet {
 	(game, base).into()
 }
 
+pub fn start_replay() -> StartReplay {
+	Default::default()
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct StartReplay(sc2_prost::RequestStartReplay);
 impl StartReplay {
+	pub fn new() -> Self {
+		Self::default()
+	}
 	pub fn replay(mut self, path: Utf8PathBuf) -> Self {
 		self.0.replay = Some(Replay::ReplayPath(path.into()));
 		self
