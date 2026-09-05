@@ -1,11 +1,13 @@
-use std::path::Path;
+#[cfg(not(feature = "prost-build"))]
+fn main() {}
 
+#[cfg(feature = "prost-build")]
 fn main() {
-	let protos_dir = Path::new("../s2client-proto/s2clientprotocol");
-	println!("cargo:rerun-if-changed={}", protos_dir.display());
+	const INCLUDE_DIR: &str = "../s2client-proto";
+	const PROTOS_DIR: &str = "../s2client-proto/s2clientprotocol";
+	const PROTO_FILE: &str = "../s2client-proto/s2clientprotocol/sc2api.proto";
 
-	let mut proto_file = protos_dir.to_owned();
-	proto_file.push("sc2api.proto");
+	println!("cargo:rerun-if-changed={PROTOS_DIR}");
 
 	let serde = "#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]";
 	let serde_with = |path| format!("#[cfg_attr(feature = \"serde\", serde(with = \"{path}\"))]");
@@ -108,6 +110,6 @@ fn main() {
 	serde_skip_default_fields("EffectData", &["name", "friendly_name", "radius"]);
 
 	config
-		.compile_protos(&[proto_file], &[protos_dir.parent().unwrap()])
+		.compile_protos(&[PROTO_FILE], &[INCLUDE_DIR])
 		.unwrap_or_else(|e| panic!("{e}"))
 }

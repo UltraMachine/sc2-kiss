@@ -10,4 +10,4 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 glam = { version = "0.30", optional = true }
 
 [build-dependencies]
-prost-build = "0.14"
+prost-build = { version = "0.14", optional = true }

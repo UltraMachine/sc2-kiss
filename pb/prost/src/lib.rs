@@ -1,3 +1,7 @@
+#[cfg(not(feature = "prost-build"))]
+include!("sc2api_protocol.rs");
+
+#[cfg(feature = "prost-build")]
 include!(concat!(env!("OUT_DIR"), "/sc2api_protocol.rs"));
 
 #[cfg(feature = "serde")]
