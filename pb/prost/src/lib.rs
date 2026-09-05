@@ -39,6 +39,25 @@ mod srd {
 				.map(|res| res.into_iter().map(|item| item as i32).collect())
 		}
 	}
+
+	pub fn is_default<T: Default + PartialEq>(x: &T) -> bool {
+		*x == T::default()
+	}
+	pub fn is_none_target(t: &i32) -> bool {
+		*t < 2
+	}
+	pub fn is1(x: &u32) -> bool {
+		*x == 1
+	}
+	pub const fn t() -> bool {
+		true
+	}
+	pub const fn i1() -> i32 {
+		1
+	}
+	pub const fn u1() -> u32 {
+		1
+	}
 }
 
 #[cfg(feature = "glam")]
