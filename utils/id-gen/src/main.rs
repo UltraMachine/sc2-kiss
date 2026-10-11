@@ -113,9 +113,7 @@ fn gen(opts: Cli) -> Result {
 	let abils = data
 		.abilities
 		.into_iter()
-		.filter(|abil| {
-			abil.available && abil.remaps_to_ability_id == 0 && !abil.button_name.is_empty()
-		})
+		.filter(|abil| abil.available && !abil.button_name.is_empty())
 		.map(|abil| {
 			(
 				if abil_names.insert(abil.friendly_name.clone()) {
