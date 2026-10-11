@@ -1,5 +1,5 @@
 use std::ffi::OsStr;
-use std::net::{Ipv6Addr, SocketAddr};
+use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::{fs, io};
@@ -70,11 +70,19 @@ impl LauncherBuilder<'_> {
 		Self::default()
 	}
 
-	/// Addres that the SC2 API WebSocket server will listen on.
+	/// Address that the SC2 API WebSocket server will listen on.
 	///
 	/// Defaults to `[::1]:5000`
 	pub fn addr(mut self, addr: SocketAddr) -> Self {
 		self.addr = Addr(addr);
+		self
+	}
+	pub fn ip(mut self, ip: IpAddr) -> Self {
+		self.addr.0.set_ip(ip);
+		self
+	}
+	pub fn port(mut self, port: u16) -> Self {
+		self.addr.0.set_port(port);
 		self
 	}
 	/// Path to the game directory.
@@ -203,10 +211,7 @@ impl LauncherBuilder<'_> {
 		}
 
 		let mut cmd = Command::new(cmd_path);
-		cmd.arg("-listen")
-			.arg(self.addr.0.ip().to_string())
-			.arg("-port")
-			.arg(self.addr.0.port().to_string());
+		cmd.arg("-listen").arg(self.addr.0.to_string());
 
 		if let Some(data_version) = self.data_version {
 			cmd.arg("-dataVersion").arg(data_version);

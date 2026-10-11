@@ -149,7 +149,7 @@ impl Default for Computer {
 	fn default() -> Self {
 		Self(PlayerSetup {
 			r#type: PlayerType::Computer as i32,
-			race: 0,
+			race: Race::Random as i32,
 			difficulty: 0,
 			player_name: String::new(),
 			ai_build: 0,
@@ -166,7 +166,7 @@ pub fn join_game() -> JoinGame {
 	Default::default()
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct JoinGame(sc2_prost::RequestJoinGame);
 impl JoinGame {
 	pub fn new() -> Self {
@@ -202,6 +202,15 @@ impl JoinGame {
 	pub fn host_ip(mut self, ip: IpAddr) -> Self {
 		self.0.host_ip = ip.to_string();
 		self
+	}
+}
+impl Default for JoinGame {
+	fn default() -> Self {
+		Self(sc2_prost::RequestJoinGame {
+			participation: Some(Participation::Race(0)),
+			options: Some(Default::default()),
+			..Default::default()
+		})
 	}
 }
 impl From<JoinGame> for Request {

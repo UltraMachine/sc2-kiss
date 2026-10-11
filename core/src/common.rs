@@ -186,15 +186,9 @@ impl<R, E> ResultResExt<R, E> for Result<Res<R>, E> {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PlayerId(pub u32);
-impl PlayerId {
-	pub const NEUTRAL: Self = Self(0);
-}
 impl fmt::Display for PlayerId {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match self.0 {
-			0 => write!(f, "Neutral"),
-			i => write!(f, "Player {i}"),
-		}
+		write!(f, "{}", self.0)
 	}
 }
 impl From<u32> for PlayerId {
