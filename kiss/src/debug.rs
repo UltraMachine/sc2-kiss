@@ -339,7 +339,7 @@ pub mod draw {
 
 pub mod unit {
 	use super::*;
-	use crate::{ids::UnitKind, unit::Tag};
+	use crate::{ids::UnitKind, unit::UnitTag};
 	use sc2_core::common::PlayerId;
 
 	#[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -377,7 +377,7 @@ pub mod unit {
 		}
 	}
 
-	pub fn kill(tags: impl IntoIterator<Item = Tag>) -> DebugCommand {
+	pub fn kill(tags: impl IntoIterator<Item = UnitTag>) -> DebugCommand {
 		let tag = tags.into_iter().map(Into::into).collect();
 		cmd(Command::KillUnit(sc2_prost::DebugKillUnit { tag }))
 	}
@@ -406,7 +406,7 @@ pub mod unit {
 		}
 	}
 	impl SetUnitValue {
-		pub fn of(self, tag: Tag) -> DebugCommand {
+		pub fn of(self, tag: UnitTag) -> DebugCommand {
 			cmd(Command::UnitValue(sc2_prost::DebugSetUnitValue {
 				unit_value: self.val as i32,
 				value: self.num,

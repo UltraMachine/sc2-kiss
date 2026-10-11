@@ -8,14 +8,14 @@ use sc2_prost::{
 };
 use sc2_prost::{Point, Point2D};
 
-use crate::unit::Tag;
+use crate::unit::UnitTag;
 use ids::Ability;
 use linalg::{IVec2, Vec2, Vec3};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Target<P> {
 	Pos(P),
-	Unit(Tag),
+	Unit(UnitTag),
 }
 
 pub type Target2 = Target<Vec2>;
@@ -31,8 +31,8 @@ impl<P: fmt::Display> fmt::Display for Target<P> {
 	}
 }
 
-impl<P> From<Tag> for Target<P> {
-	fn from(tag: Tag) -> Self {
+impl<P> From<UnitTag> for Target<P> {
+	fn from(tag: UnitTag) -> Self {
 		Self::Unit(tag)
 	}
 }
@@ -268,7 +268,7 @@ pub use actions;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnitsActions<P> {
-	actions: HashMap<Tag, UnitActions<P>>,
+	actions: HashMap<UnitTag, UnitActions<P>>,
 }
 impl<P> UnitsActions<P> {
 	pub fn new() -> Self {
@@ -290,20 +290,20 @@ impl<P> From<()> for UnitsActions<P> {
 	}
 }
 
-impl<P> FromIterator<(Tag, UnitActions<P>)> for UnitsActions<P> {
+impl<P> FromIterator<(UnitTag, UnitActions<P>)> for UnitsActions<P> {
 	fn from_iter<I>(iter: I) -> Self
 	where
-		I: IntoIterator<Item = (Tag, UnitActions<P>)>,
+		I: IntoIterator<Item = (UnitTag, UnitActions<P>)>,
 	{
 		Self {
 			actions: <_>::from_iter(iter),
 		}
 	}
 }
-impl<P> Extend<(Tag, UnitActions<P>)> for UnitsActions<P> {
+impl<P> Extend<(UnitTag, UnitActions<P>)> for UnitsActions<P> {
 	fn extend<I>(&mut self, iter: I)
 	where
-		I: IntoIterator<Item = (Tag, UnitActions<P>)>,
+		I: IntoIterator<Item = (UnitTag, UnitActions<P>)>,
 	{
 		self.actions.extend(iter);
 	}
@@ -329,7 +329,7 @@ fn raw_units_action(
 
 impl ToActions for UnitsActions<IVec2> {
 	fn to_iter(self) -> impl Iterator<Item = Action> {
-		type Actions = HashMap<UnitAction<IVec2>, HashSet<Tag>>;
+		type Actions = HashMap<UnitAction<IVec2>, HashSet<UnitTag>>;
 		let mut force_actions = Actions::default();
 		let mut queue_actions = Vec::<Actions>::default();
 
@@ -372,13 +372,13 @@ impl ToActions for UnitsActions<IVec2> {
 
 impl ToActions for UnitsActions<Vec2> {
 	fn to_iter(self) -> impl Iterator<Item = Action> {
-		type ActionsOptUnit = HashMap<(Ability, Option<Tag>), HashSet<Tag>>;
-		type ActionsPos = Vec<(Ability, Vec2, Tag)>;
+		type ActionsOptUnit = HashMap<(Ability, Option<UnitTag>), HashSet<UnitTag>>;
+		type ActionsPos = Vec<(Ability, Vec2, UnitTag)>;
 		type Actions = (ActionsOptUnit, ActionsPos);
 		let mut force_actions = Actions::default();
 		let mut queue_actions = Vec::<Actions>::default();
 
-		fn add(actions: &mut Actions, action: UnitAction<Vec2>, tag: Tag) {
+		fn add(actions: &mut Actions, action: UnitAction<Vec2>, tag: UnitTag) {
 			let target = match action.target {
 				None => None,
 				Some(Target::Unit(tag)) => Some(tag),

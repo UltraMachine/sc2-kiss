@@ -8,7 +8,7 @@ pub use sc2_prost::Unit as RawUnit;
 
 /// Methods for extracting various data from unit
 pub trait UnitExt {
-	fn tag(&self) -> Tag;
+	fn tag(&self) -> UnitTag;
 	fn owner(&self) -> PlayerId;
 	#[cfg(feature = "ids")]
 	fn kind(&self) -> ids::UnitKind;
@@ -25,7 +25,7 @@ pub trait UnitExt {
 }
 
 impl UnitExt for RawUnit {
-	fn tag(&self) -> Tag {
+	fn tag(&self) -> UnitTag {
 		self.tag.into()
 	}
 	fn owner(&self) -> PlayerId {
@@ -59,30 +59,22 @@ impl UnitExt for RawUnit {
 
 /**
 Unique identifier for a unit.
-
-`u64` wrapper which provides distinct type name and
-doesn't allow math operations or mutation of inner value.
 */
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct Tag(u64);
-impl Tag {
-	pub fn num(self) -> u64 {
-		self.0
-	}
-}
-impl fmt::Display for Tag {
+pub struct UnitTag(pub u64);
+impl fmt::Display for UnitTag {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "{}", self.0)
 	}
 }
-impl From<u64> for Tag {
-	fn from(num: u64) -> Tag {
-		Tag(num)
+impl From<u64> for UnitTag {
+	fn from(num: u64) -> UnitTag {
+		UnitTag(num)
 	}
 }
-impl From<Tag> for u64 {
-	fn from(tag: Tag) -> u64 {
+impl From<UnitTag> for u64 {
+	fn from(tag: UnitTag) -> u64 {
 		tag.0
 	}
 }
