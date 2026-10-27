@@ -6,10 +6,10 @@ use std::time::Duration;
 pub struct GameLoop(pub u32);
 impl GameLoop {
 	pub fn from_millis(millis: u32) -> Self {
-		Self(millis * 14 / 625)
+		Self((millis * 28 + 625) / 1250)
 	}
 	pub fn from_secs(secs: u32) -> Self {
-		Self(secs * 112 / 5)
+		Self((secs * 224 + 5) / 10)
 	}
 	pub fn from_mins(mins: u32) -> Self {
 		Self(mins * 1344)
@@ -19,10 +19,10 @@ impl GameLoop {
 	}
 
 	pub fn as_millis(self) -> u32 {
-		self.0 * 625 / 14
+		(self.0 * 625 + 7) / 14
 	}
 	pub fn as_secs(self) -> u32 {
-		self.0 * 5 / 112
+		(self.0 * 5 + 56) / 112
 	}
 
 	pub fn display_time(self) -> DisplayTime {
