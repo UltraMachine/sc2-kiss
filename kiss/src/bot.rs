@@ -2,10 +2,34 @@ use std::ops::ControlFlow;
 
 use sc2_core::{
 	Client, Result,
-	common::Res,
+	common::{PlayerId, Res},
 	request::{self, Observation, observation, step},
 };
-use sc2_prost::{Action, DebugCommand, ResponseObservation as ResObs, Status};
+use sc2_prost::{
+	Action, DebugCommand, InterfaceOptions, Race, ResponseObservation as ResObs, Status,
+};
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct BotJoin {
+	pub race: Race,
+	pub name: String,
+	pub interface: InterfaceOptions,
+}
+impl BotJoin {
+	pub fn new() -> Self {
+		Default::default()
+	}
+	pub fn race(self, race: Race) -> Self {
+		Self { race, ..self }
+	}
+	pub fn name(self, name: String) -> Self {
+		Self { name, ..self }
+	}
+	pub fn interface(mut self, interface: impl Into<InterfaceOptions>) -> Self {
+		self.interface = interface.into();
+		self
+	}
+}
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct BotAction {
@@ -57,10 +81,13 @@ impl From<(Vec<Action>, Vec<DebugCommand>)> for BotAction {
 }
 
 pub trait PlayGame {
-	fn on_start(&mut self, obs: &ResObs, client: &mut Client) -> Result<BotAction>;
+	fn on_start(&mut self, obs: &ResObs, client: &mut Client, pid: PlayerId) -> Result<BotAction>;
 	fn on_step(&mut self, obs: ResObs, client: &mut Client) -> Result<BotAction>;
 	fn on_end(&mut self, obs: ResObs, client: &mut Client) -> Result;
 
+	fn join(&self) -> BotJoin {
+		Default::default()
+	}
 	fn step_size(&self) -> u32 {
 		1
 	}
@@ -104,7 +131,12 @@ fn play_step(
 	Ok(cf)
 }
 
-pub fn play_game(bot: &mut impl PlayGame, client: &mut Client, realtime: bool) -> Result {
+pub fn play_game(
+	bot: &mut impl PlayGame,
+	client: &mut Client,
+	pid: PlayerId,
+	realtime: bool,
+) -> Result {
 	fn req_obs(bot: &impl PlayGame) -> Observation {
 		observation().disable_fog(bot.cheat_vision())
 	}
@@ -113,7 +145,7 @@ pub fn play_game(bot: &mut impl PlayGame, client: &mut Client, realtime: bool) -
 	}
 
 	let res = client.request(req_obs(bot))?;
-	let action = bot.on_start(&res.data, client)?;
+	let action = bot.on_start(&res.data, client, pid)?;
 	if execute(action, client)?.is_break() {
 		return Ok(());
 	}

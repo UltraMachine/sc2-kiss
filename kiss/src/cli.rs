@@ -1,5 +1,7 @@
 #[cfg(feature = "ai-arena")]
-use sc2_core::request::setup::{JoinGame, join_game};
+use crate::bot::{PlayGame, play_game};
+#[cfg(feature = "ai-arena")]
+use sc2_core::request::setup::JoinGame;
 use sc2_core::{Client, Result};
 use std::net::IpAddr;
 
@@ -103,8 +105,19 @@ impl AiArena {
 	}
 	pub fn join_game(&self) -> JoinGame {
 		let p = self.join_port;
-		join_game()
+		JoinGame::new()
 			.server_ports((p + 1, p + 2))
 			.client_ports(vec![(p + 3, p + 4).into()])
+	}
+	pub fn play(&self, bot: &mut impl PlayGame) -> Result {
+		let mut client = self.connect()?;
+		let join = bot.join();
+		let join = self
+			.join_game()
+			.participant(join.race)
+			.interface(join.interface)
+			.name(join.name);
+		let pid = client.request(join)?.data;
+		play_game(bot, &mut client, pid, self.realtime)
 	}
 }
