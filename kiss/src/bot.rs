@@ -3,7 +3,7 @@ use std::ops::ControlFlow;
 use sc2_core::{
 	Client, Result,
 	common::{PlayerId, Res},
-	request::{self, Observation, observation, step},
+	request::{self, JoinGame, Observation, observation, step},
 };
 use sc2_prost::{
 	Action, DebugCommand, InterfaceOptions, Race, ResponseObservation as ResObs, Status,
@@ -28,6 +28,14 @@ impl BotJoin {
 	pub fn interface(mut self, interface: impl Into<InterfaceOptions>) -> Self {
 		self.interface = interface.into();
 		self
+	}
+}
+impl From<BotJoin> for JoinGame {
+	fn from(join: BotJoin) -> Self {
+		Self::new()
+			.participant(join.race)
+			.interface(join.interface)
+			.name(join.name)
 	}
 }
 
