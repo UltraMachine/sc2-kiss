@@ -1,8 +1,8 @@
 use std::ffi::OsStr;
+use std::io;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
-use std::{fs, io};
 
 use thiserror::Error;
 
@@ -345,7 +345,7 @@ pub fn locate_game_dir() -> Option<PathBuf> {
 		let mut path = dirs::document_dir()?;
 		path.extend(["StarCraft II", "ExecuteInfo.txt"]);
 
-		let data = fs::read_to_string(path).ok()?;
+		let data = std::fs::read_to_string(path).ok()?;
 		let mut path: PathBuf = data.get(13..)?.into();
 		for _ in 0..3 {
 			path.pop();
