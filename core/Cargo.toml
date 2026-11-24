@@ -5,7 +5,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-tungstenite = "0.28"
+tungstenite = "0.30"
 sc2-prost = { version = "0.1.0", path = "../pb/prost" }
 prost = "0.14"
 thiserror = "2.0"
