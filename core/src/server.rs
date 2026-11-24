@@ -11,9 +11,13 @@ use tungstenite::{
 		Callback, ErrorResponse, Request as ServerRequest, Response as ServerResponse,
 	},
 	http::StatusCode,
+	protocol::CloseFrame,
 };
 
-use crate::common::internal::{req_from_msg, res_into_msg};
+use crate::common::{
+	MessageError,
+	internal::{req_from_msg, res_into_msg},
+};
 
 type WS = tungstenite::WebSocket<TcpStream>;
 type HsError = HandshakeError<ServerHandshake<TcpStream, ServerCallback>>;
@@ -28,6 +32,8 @@ pub enum Error {
 	WebSocket(#[from] WsError),
 	#[error("Decode error: {0}")]
 	Decode(#[from] DecodeError),
+	#[error("Message error: {0}")]
+	Message(#[from] MessageError),
 }
 impl From<HsError> for Error {
 	fn from(e: HsError) -> Self {
@@ -80,6 +86,10 @@ impl ServerClient {
 	}
 	pub fn flush(&mut self) -> Result {
 		Ok(self.0.flush()?)
+	}
+
+	pub fn close(&mut self, code: Option<CloseFrame>) -> Result {
+		Ok(self.0.close(code)?)
 	}
 
 	pub fn inner(&self) -> &WS {

@@ -1,6 +1,7 @@
 use super::*;
 use sc2_prost::Status;
 use std::fmt;
+use tungstenite::protocol::CloseFrame;
 
 /// Enum to identify kind of request/response
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -206,6 +207,14 @@ impl From<PlayerId> for u32 {
 #[error("Bad response: `{0:?}`, expected `{1:?}`")]
 pub struct BadResError(pub Kind, pub Kind);
 
+#[derive(Debug, Error)]
+pub enum MessageError {
+	#[error("only binary is supported")]
+	Unsupported,
+	#[error("close message received")]
+	Close(Option<CloseFrame>),
+}
+
 pub trait ParseResponse {
 	type Output;
 	fn parse(res: Response) -> Result<Self::Output>;
@@ -256,19 +265,26 @@ impl<R: KindOf> KindOf for SetId<R> {
 #[doc(hidden)]
 pub mod internal {
 	use prost::Message as _;
-	use tungstenite::Message;
+	use tungstenite::{Bytes, Message};
 
 	use super::*;
 
 	pub fn req_into_msg(req: Request) -> Message {
 		Message::Binary(req.encode_to_vec().into())
 	}
+	fn msg_to_bytes(msg: Message) -> Result<Bytes, MessageError> {
+		match msg {
+			Message::Binary(bytes) => Ok(bytes),
+			Message::Close(code) => Err(MessageError::Close(code)),
+			_ => Err(MessageError::Unsupported),
+		}
+	}
 	pub fn res_from_msg(msg: Message) -> Result<Response> {
-		Ok(Response::decode(msg.into_data())?)
+		Ok(Response::decode(msg_to_bytes(msg)?)?)
 	}
 	#[cfg(feature = "server")]
 	pub fn req_from_msg(msg: Message) -> server::Result<Request> {
-		Ok(Request::decode(msg.into_data())?)
+		Ok(Request::decode(msg_to_bytes(msg)?)?)
 	}
 	pub fn res_into_msg(res: Response) -> Message {
 		Message::Binary(res.encode_to_vec().into())

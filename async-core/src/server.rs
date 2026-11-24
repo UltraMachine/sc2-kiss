@@ -2,7 +2,10 @@ use futures_util::{SinkExt, StreamExt};
 use sc2_prost::{Request, Response};
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use tokio_tungstenite::{WebSocketStream, accept_hdr_async, tungstenite::Error as WsError};
+use tokio_tungstenite::{
+	WebSocketStream, accept_hdr_async,
+	tungstenite::{Error as WsError, protocol::CloseFrame},
+};
 
 use crate::common::internal::{req_from_msg, res_into_msg};
 
@@ -61,6 +64,10 @@ impl ServerClient {
 
 	pub async fn flush(&mut self) -> Result {
 		Ok(self.0.flush().await?)
+	}
+
+	pub async fn close(&mut self, code: Option<CloseFrame>) -> Result {
+		Ok(self.0.close(code).await?)
 	}
 
 	pub fn inner(&self) -> &WebSocket {

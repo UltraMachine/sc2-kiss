@@ -4,7 +4,7 @@ use std::{
 	net::{SocketAddr, TcpStream, ToSocketAddrs},
 	time::Duration,
 };
-use tungstenite::{ClientHandshake, Error as WsError, HandshakeError};
+use tungstenite::{ClientHandshake, Error as WsError, HandshakeError, protocol::CloseFrame};
 
 type WebSocket = tungstenite::WebSocket<TcpStream>;
 type HsError = HandshakeError<ClientHandshake<TcpStream>>;
@@ -26,6 +26,8 @@ pub enum Error {
 	/// Response contains some errors
 	#[error("{0}")]
 	Sc2(#[from] Sc2Error),
+	#[error("Message error: {0}")]
+	Message(#[from] MessageError),
 }
 impl From<io::Error> for Error {
 	fn from(e: io::Error) -> Self {
@@ -175,6 +177,10 @@ impl Client {
 
 	pub fn flush(&mut self) -> Result {
 		Ok(self.ws.flush()?)
+	}
+
+	pub fn close(&mut self, code: Option<CloseFrame>) -> Result {
+		Ok(self.ws.close(code)?)
 	}
 
 	pub fn inner(&self) -> &WebSocket {

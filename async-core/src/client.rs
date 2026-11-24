@@ -2,7 +2,10 @@ use super::*;
 use futures_util::{SinkExt, StreamExt};
 use sc2_prost::{Request, Response};
 use tokio::net::{TcpStream, ToSocketAddrs};
-use tokio_tungstenite::{WebSocketStream, client_async, tungstenite::Error as WsError};
+use tokio_tungstenite::{
+	WebSocketStream, client_async,
+	tungstenite::{Error as WsError, protocol::CloseFrame},
+};
 
 type WebSocket = WebSocketStream<TcpStream>;
 
@@ -146,6 +149,10 @@ impl Client {
 
 	pub async fn flush(&mut self) -> Result {
 		Ok(self.ws.flush().await?)
+	}
+
+	pub async fn close(&mut self, code: Option<CloseFrame>) -> Result {
+		Ok(self.ws.close(code).await?)
 	}
 
 	pub fn inner(&self) -> &WebSocket {
